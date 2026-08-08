@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Slinky.Views.NotePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Slinky"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid RowSpacing="4" Background="{x:Bind Theme.Background, Mode=OneWay}" Tapped="NotePageRoot_Tapped">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar: current file path (blank for a note that's never been saved) -->
+        <TextBlock Grid.Row="0"
+                   Margin="12,8,12,0"
+                   Text="{x:Bind noteModel.PathDisplay, Mode=OneWay}"
+                   Visibility="{x:Bind PathRowVisibility(noteModel.PathDisplay), Mode=OneWay}"
+                   Opacity="0.6"
+                   Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"
+                   TextTrimming="CharacterEllipsis"/>
+
+        <!-- Localizar / Localizar e substituir bar (collapsed until opened from the Editar menu) -->
+        <Grid x:Name="FindBar"
+              Visibility="Collapsed"
+              Background="{x:Bind Theme.Surface, Mode=OneWay}"
+              Padding="8" RowSpacing="6"
+              Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" ColumnSpacing="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="FindTextBox" Grid.Column="0" PlaceholderText="Localizar"
+                         TextChanged="FindTextBox_TextChanged" KeyDown="FindBar_KeyDown"/>
+                <TextBlock x:Name="FindStatusText" Grid.Column="1" VerticalAlignment="Center"
+                           Opacity="0.7" Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"/>
+                <Button x:Name="FindPreviousButton" Grid.Column="2" Content="Anterior" Click="FindPrevious_Click"/>
+                <Button x:Name="FindNextButton" Grid.Column="3" Content="Próximo" Click="FindNext_Click"/>
+                <Button x:Name="CloseFindBarButton" Grid.Column="4" Content="✕" Click="CloseFindBar_Click" AutomationProperties.Name="Fechar busca"/>
+            </Grid>
+
+            <Grid x:Name="ReplaceRow" Grid.Row="1" ColumnSpacing="6" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="ReplaceTextBox" Grid.Column="0" PlaceholderText="Substituir por"/>
+                <CheckBox x:Name="MatchCaseCheckBox" Grid.Column="1" Content="Maiúsc/minúsc" VerticalAlignment="Center"
+                          Checked="FindOption_Changed" Unchecked="FindOption_Changed"/>
+                <Button x:Name="ReplaceButton" Grid.Column="2" Content="Substituir" Click="Replace_Click"/>
+                <Button x:Name="ReplaceAllButton" Grid.Column="3" Content="Substituir tudo" Click="ReplaceAll_Click"/>
+            </Grid>
+        </Grid>
+
+        <!-- Edit view: raw, continuous .txt/.md text — fills the whole tab, like Notepad.
+             No border from a click (see NotePageRoot_Tapped) — but Tab-key navigation still
+             shows one, via GotFocus/LostFocus below, so keyboard-only use isn't left guessing
+             where focus is. -->
+        <TextBox x:Name="NoteEditor"
+                 TextChanged="NoteEditor_TextChanged"
+                 GotFocus="NoteEditor_GotFocus"
+                 LostFocus="NoteEditor_LostFocus"
+                 AcceptsReturn="True"
+                 TextWrapping="Wrap"
+                 FontFamily="Cascadia Mono, Consolas, monospace"
+                 BorderThickness="0"
+                 Background="{x:Bind Theme.Background, Mode=OneWay}"
+                 Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Stretch"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 Padding="12"
+                 Grid.Row="2">
+            <TextBox.Resources>
+                <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent"/>
+                <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent"/>
+                <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent"/>
+                <Thickness x:Key="TextControlBorderThemeThickness">0</Thickness>
+                <Thickness x:Key="TextControlBorderThemeThicknessFocused">0</Thickness>
+            </TextBox.Resources>
+        </TextBox>
+
+        <!-- Preview view: rendered Markdown (read-only) -->
+        <ScrollViewer x:Name="PreviewScroller"
+                      Visibility="Collapsed"
+                      VerticalScrollBarVisibility="Auto"
+                      Padding="12"
+                      Grid.Row="2">
+            <RichTextBlock x:Name="PreviewBlock"
+                           TextWrapping="Wrap"
+                           Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"
+                           IsTextSelectionEnabled="True"/>
+        </ScrollViewer>
+    </Grid>
+</Page>

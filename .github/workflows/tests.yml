@@ -1,0 +1,32 @@
+name: Testes
+
+# Roda só o Slinky.Tests por enquanto (net8.0 puro, sem WindowsAppSDK) — é a parte
+# rápida e confiável de validar em CI. Compilar o Slinky.csproj (o app WinUI3
+# empacotado em MSIX) num runner do GitHub é um passo à parte, com complicações
+# próprias de certificado/assinatura que valem uma rodada de ajuste dedicada —
+# ver CHECKLIST.md.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restaurar Slinky.Tests
+        run: dotnet restore Slinky.Tests/Slinky.Tests.csproj
+
+      - name: Rodar testes
+        run: dotnet test Slinky.Tests/Slinky.Tests.csproj --configuration Release --no-restore

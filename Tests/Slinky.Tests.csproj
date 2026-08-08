@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Exact versions below may have moved on by the time you restore this — if any of these
+      fail to resolve, open "Manage NuGet Packages" in Visual Studio for this project and
+      update to whatever the current version is; nothing here is version-sensitive.
+    -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="coverlet.collector" Version="6.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Linked, not referenced: these four files have zero WinRT/XAML dependency by design
+      (see the comments at the top of each), so they compile fine here in a plain net8.0
+      test project even though the main Slinky project targets net8.0-windows10.0.19041.0.
+      Everything else in Slinky (Note, ThemeService, NotePage, MainWindow...) depends on
+      WinRT types (StorageFile, DispatcherTimer, SolidColorBrush, etc.) and can't be linked
+      in the same way without a Windows test host — see CHECKLIST.md for that follow-up.
+    -->
+    <Compile Include="..\Slinky\AppTheme.cs" Link="Linked\AppTheme.cs" />
+    <Compile Include="..\Slinky\ThemePalette.cs" Link="Linked\ThemePalette.cs" />
+    <Compile Include="..\Slinky\ContrastCalculator.cs" Link="Linked\ContrastCalculator.cs" />
+    <Compile Include="..\Slinky\MarkdownTokenizer.cs" Link="Linked\MarkdownTokenizer.cs" />
+  </ItemGroup>
+
+</Project>

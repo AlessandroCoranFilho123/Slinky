@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Slinky.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Slinky"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="Slinky">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="Base"/>
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="RootGrid" Background="{x:Bind Theme.Background, Mode=OneWay}" Loaded="RootGrid_Loaded">
+        <Grid.KeyboardAccelerators>
+            <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="NovoAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="T" Modifiers="Control" Invoked="NovaAbaAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="O" Modifiers="Control" Invoked="AbrirAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="S" Modifiers="Control" Invoked="SalvarAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="F" Modifiers="Control" Invoked="FindAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="H" Modifiers="Control" Invoked="FindReplaceAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="P" Modifiers="Control" Invoked="ImprimirAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Add" Modifiers="Control" Invoked="ZoomInAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Subtract" Modifiers="Control" Invoked="ZoomOutAccelerator_Invoked"/>
+            <KeyboardAccelerator Key="Number0" Modifiers="Control" Invoked="ZoomResetAccelerator_Invoked"/>
+        </Grid.KeyboardAccelerators>
+        <Grid.RowDefinitions>
+            <!-- Title bar -->
+            <RowDefinition Height="auto"/>
+            <!-- Menu bar (Arquivo / Editar / Formatar) -->
+            <RowDefinition Height="auto"/>
+            <!-- App content -->
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TitleBar x:Name="AppTitleBar"
+            Title="Slinky">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="ms-appx:///Assets/Square44x44Logo.scale-200.png"/>
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <MenuBar Grid.Row="1" Background="{x:Bind Theme.Surface, Mode=OneWay}">
+            <MenuBar.Items>
+
+                <MenuBarItem Title="Arquivo">
+                    <MenuBarItem.Items>
+                        <MenuFlyoutItem Text="Novo" KeyboardAcceleratorTextOverride="Ctrl+N" Click="NovoMenuItem_Click"/>
+                        <MenuFlyoutItem Text="Nova aba" KeyboardAcceleratorTextOverride="Ctrl+T" Click="NovaAbaMenuItem_Click"/>
+                        <MenuFlyoutItem Text="Nova janela" Click="NovaJanelaMenuItem_Click"/>
+                        <MenuFlyoutSeparator/>
+                        <MenuFlyoutItem Text="Abrir..." KeyboardAcceleratorTextOverride="Ctrl+O" Click="OpenFileButton_Click"/>
+                        <MenuFlyoutSubItem x:Name="RecentFilesMenuItem" Text="Abrir recente">
+                            <MenuFlyoutItem Text="(nenhum arquivo recente)" IsEnabled="False"/>
+                        </MenuFlyoutSubItem>
+                        <MenuFlyoutItem Text="Salvar" KeyboardAcceleratorTextOverride="Ctrl+S" Click="SalvarMenuItem_Click"/>
+                        <MenuFlyoutItem Text="Salvar como..." Click="SalvarComoMenuItem_Click"/>
+                        <MenuFlyoutSeparator/>
+                        <MenuFlyoutItem Text="Excluir arquivo..." Click="ExcluirArquivoMenuItem_Click"/>
+                        <MenuFlyoutSeparator/>
+                        <MenuFlyoutItem Text="Configurar..." Click="ConfigurarMenuItem_Click"/>
+                        <MenuFlyoutItem Text="Imprimir..." KeyboardAcceleratorTextOverride="Ctrl+P" Click="ImprimirMenuItem_Click"/>
+                        <MenuFlyoutSeparator/>
+                        <MenuFlyoutItem Text="Sair" Click="SairMenuItem_Click"/>
+                    </MenuBarItem.Items>
+                </MenuBarItem>
+
+                <MenuBarItem Title="Editar">
+                    <MenuBarItem.Items>
+                        <MenuFlyoutItem Text="Desfazer" KeyboardAcceleratorTextOverride="Ctrl+Z" Click="UndoMenuItem_Click"/>
+                        <MenuFlyoutSeparator/>
+                        <MenuFlyoutItem Text="Recortar" KeyboardAcceleratorTextOverride="Ctrl+X" Click="CutMenuItem_Click"/>
+                        <MenuFlyoutItem Text="Copiar" KeyboardAcceleratorTextOverride="Ctrl+C" Click="CopyMenuItem_Click"/>
+                        <MenuFlyoutItem Text="Colar" KeyboardAcceleratorTextOverride="Ctrl+V" Click="PasteMenuItem_Click"/>
+                        <MenuFlyoutItem Text="Excluir" Click="DeleteSelectionMenuItem_Click"/>
+                        <MenuFlyoutSeparator/>
+                        <MenuFlyoutItem Text="Localizar..." KeyboardAcceleratorTextOverride="Ctrl+F" Click="FindMenuItem_Click"/>
+                        <MenuFlyoutItem Text="Localizar e substituir..." KeyboardAcceleratorTextOverride="Ctrl+H" Click="FindReplaceMenuItem_Click"/>
+                        <MenuFlyoutSeparator/>
+                        <MenuFlyoutItem Text="Selecionar tudo" KeyboardAcceleratorTextOverride="Ctrl+A" Click="SelectAllMenuItem_Click"/>
+                        <MenuFlyoutSubItem Text="Zoom">
+                            <MenuFlyoutItem Text="Ampliar" KeyboardAcceleratorTextOverride="Ctrl++" Click="ZoomInMenuItem_Click"/>
+                            <MenuFlyoutItem Text="Reduzir" KeyboardAcceleratorTextOverride="Ctrl+-" Click="ZoomOutMenuItem_Click"/>
+                            <MenuFlyoutItem Text="Restaurar zoom" KeyboardAcceleratorTextOverride="Ctrl+0" Click="ZoomResetMenuItem_Click"/>
+                        </MenuFlyoutSubItem>
+                    </MenuBarItem.Items>
+                </MenuBarItem>
+
+                <MenuBarItem Title="Formatar">
+                    <MenuBarItem.Items>
+                        <ToggleMenuFlyoutItem x:Name="FormatToggleMenuItem" Text="Texto formatado" Click="FormatToggleMenuItem_Click"/>
+                    </MenuBarItem.Items>
+                </MenuBarItem>
+
+            </MenuBar.Items>
+        </MenuBar>
+
+        <!-- App content: one tab per open note (.txt/.md) -->
+        <TabView x:Name="NotesTabView"
+                 Grid.Row="2"
+                 TabWidthMode="Equal"
+                 SelectionChanged="NotesTabView_SelectionChanged"
+                 AddTabButtonClick="NotesTabView_AddTabButtonClick"
+                 TabCloseRequested="NotesTabView_TabCloseRequested">
+        </TabView>
+    </Grid>
+</Window>
