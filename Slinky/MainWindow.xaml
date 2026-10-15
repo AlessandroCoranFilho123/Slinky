@@ -9,10 +9,6 @@
     mc:Ignorable="d"
     Title="Slinky">
 
-    <Window.SystemBackdrop>
-        <MicaBackdrop Kind="Base"/>
-    </Window.SystemBackdrop>
-
     <Grid x:Name="RootGrid" Background="{x:Bind Theme.Background, Mode=OneWay}" Loaded="RootGrid_Loaded">
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="NovoAccelerator_Invoked"/>
@@ -29,7 +25,7 @@
         <Grid.RowDefinitions>
             <!-- Title bar -->
             <RowDefinition Height="auto"/>
-            <!-- Menu bar (Arquivo / Editar / Formatar) -->
+            <!-- Menu bar (Arquivo / Editar) -->
             <RowDefinition Height="auto"/>
             <!-- App content -->
             <RowDefinition Height="*"/>
@@ -87,21 +83,13 @@
                         </MenuFlyoutSubItem>
                     </MenuBarItem.Items>
                 </MenuBarItem>
-
-                <MenuBarItem Title="Formatar">
-                    <MenuBarItem.Items>
-                        <ToggleMenuFlyoutItem x:Name="FormatToggleMenuItem" Text="Texto formatado" Click="FormatToggleMenuItem_Click"/>
-                    </MenuBarItem.Items>
-                </MenuBarItem>
-
             </MenuBar.Items>
         </MenuBar>
 
-        <!-- App content: one tab per open note (.txt/.md) -->
+        <!-- App content: one tab per open text note (.txt) -->
         <TabView x:Name="NotesTabView"
                  Grid.Row="2"
                  TabWidthMode="Equal"
-                 SelectionChanged="NotesTabView_SelectionChanged"
                  AddTabButtonClick="NotesTabView_AddTabButtonClick"
                  TabCloseRequested="NotesTabView_TabCloseRequested">
         </TabView>

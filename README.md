@@ -1,18 +1,16 @@
 # Slinky
 
-Um editor de texto leve para Windows, feito com WinUI 3. Nasceu da vontade de ter algo do tamanho e da simplicidade do Bloco de Notas clássico, mas com suporte nativo a `.txt` e `.md` — alternando entre texto puro e formatado com um clique — e abas, em vez de uma janela por arquivo.
-
-> _(coloque aqui um screenshot ou GIF do app — a tela com uma nota aberta em Markdown formatado costuma vender bem a ideia)_
+Um editor de texto leve para Windows, feito com WinUI 3. Nasceu da vontade de ter algo do tamanho e da simplicidade do Bloco de Notas clássico, com suporte nativo a `.txt` e abas, em vez de uma janela por arquivo.
 
 ## Funcionalidades
 
 - Abas — várias notas na mesma janela, sem multiplicar processos.
-- `.txt`/`.md` nativo, com alternância entre texto puro e Markdown renderizado (parser próprio, sem dependência externa).
+- `.txt` nativo, com uma superfície de edição simples e rápida.
 - 5 temas (Claro Padrão/Amarelado, Escuro Padrão/Azulado/Dracula), todos com contraste WCAG AA verificado.
 - Localizar / Localizar e substituir.
 - Impressão com margens, orientação e escala configuráveis.
 - Recuperação automática de conteúdo não salvo após fechamento inesperado.
-- Menu completo (Arquivo / Editar / Formatar) com atalhos de teclado reais.
+- Menu completo (Arquivo / Editar) com atalhos de teclado reais.
 
 ## Como compilar
 
@@ -25,7 +23,7 @@ Requer Windows 10 versão 1809 (build 17763) ou mais recente.
 
 ## Testes
 
-Os testes automatizados (`Slinky.Tests`, xUnit) cobrem a lógica que não depende de WinRT — o parser de Markdown e o cálculo de contraste WCAG dos temas. Abra o **Test Explorer** no Visual Studio depois de compilar a solução.
+Os testes automatizados (`Slinky.Tests`, xUnit) cobrem busca/substituição, contraste WCAG, estados de abas e transições entre temas. Abra o **Test Explorer** no Visual Studio depois de compilar a solução.
 
 ## Sobre a capability `runFullTrust`
 
@@ -37,4 +35,4 @@ Este é um projeto pessoal — código aberto para leitura e uso, mas **não est
 
 ## Licença
 
-_(a definir — veja `CHECKLIST.md`)_
+MIT — veja [`LICENSE`](LICENSE).

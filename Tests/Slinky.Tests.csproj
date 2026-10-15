@@ -22,17 +22,15 @@
 
   <ItemGroup>
     <!--
-      Linked, not referenced: these four files have zero WinRT/XAML dependency by design
-      (see the comments at the top of each), so they compile fine here in a plain net8.0
-      test project even though the main Slinky project targets net8.0-windows10.0.19041.0.
-      Everything else in Slinky (Note, ThemeService, NotePage, MainWindow...) depends on
-      WinRT types (StorageFile, DispatcherTimer, SolidColorBrush, etc.) and can't be linked
-      in the same way without a Windows test host — see CHECKLIST.md for that follow-up.
+      Linked, not referenced: these files have zero WinRT/XAML dependency by design, so
+      they compile in a plain net8.0 test project even though the app targets WinUI 3.
+      UI classes remain covered by the app build and the Windows smoke run.
     -->
     <Compile Include="..\Slinky\AppTheme.cs" Link="Linked\AppTheme.cs" />
     <Compile Include="..\Slinky\ThemePalette.cs" Link="Linked\ThemePalette.cs" />
     <Compile Include="..\Slinky\ContrastCalculator.cs" Link="Linked\ContrastCalculator.cs" />
-    <Compile Include="..\Slinky\MarkdownTokenizer.cs" Link="Linked\MarkdownTokenizer.cs" />
+    <Compile Include="..\Slinky\ThemeTabState.cs" Link="Linked\ThemeTabState.cs" />
+    <Compile Include="..\Slinky\TextSearch.cs" Link="Linked\TextSearch.cs" />
   </ItemGroup>
 
 </Project>

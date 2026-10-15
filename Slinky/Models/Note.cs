@@ -13,16 +13,6 @@ using Slinky.Services;
 namespace Slinky.Models
 {
     /// <summary>
-    /// Whether a note is currently shown as raw text (editable) or as
-    /// rendered Markdown (read-only preview).
-    /// </summary>
-    public enum ViewMode
-    {
-        PlainText,
-        Formatted
-    }
-
-    /// <summary>
     /// A single open document: its text, the file it's backed by (if any),
     /// and whether it currently has unsaved changes. Notifies the UI
     /// (tab header, toolbar) whenever any of that changes.
@@ -57,7 +47,6 @@ namespace Slinky.Models
                 file = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(DisplayName));
-                OnPropertyChanged(nameof(IsMarkdown));
                 OnPropertyChanged(nameof(PathDisplay));
 
                 if (value is not null)
@@ -94,22 +83,6 @@ namespace Slinky.Models
             }
         }
 
-        private ViewMode viewMode = ViewMode.PlainText;
-        public ViewMode ViewMode
-        {
-            get => viewMode;
-            set
-            {
-                if (viewMode == value) return;
-                viewMode = value;
-                OnPropertyChanged();
-            }
-        }
-
-        /// <summary>True when the backing file has a .md extension.</summary>
-        public bool IsMarkdown =>
-            File is not null && string.Equals(File.FileType, ".md", StringComparison.OrdinalIgnoreCase);
-
         /// <summary>What to show as the tab's title: the filename, plus a dot if there are unsaved changes.</summary>
         public string DisplayName => (File?.Name ?? "Sem título") + (IsDirty ? " •" : string.Empty);
 
@@ -118,7 +91,7 @@ namespace Slinky.Models
 
         public DateTime CreatedAt { get; } = DateTime.Now;
 
-        /// <summary>Loads an existing .txt/.md file into this note. Returns false (with LastError set) on failure.</summary>
+        /// <summary>Loads an existing text file into this note. Returns false (with LastError set) on failure.</summary>
         public async Task<bool> OpenAsync(StorageFile fileToOpen)
         {
             try
@@ -126,7 +99,6 @@ namespace Slinky.Models
                 Text = await FileIO.ReadTextAsync(fileToOpen);
                 File = fileToOpen;
                 IsDirty = false;
-                ViewMode = IsMarkdown ? ViewMode.Formatted : ViewMode.PlainText;
                 LastError = null;
                 return true;
             }
@@ -154,6 +126,7 @@ namespace Slinky.Models
                 await FileIO.WriteTextAsync(File, Text);
                 IsDirty = false;
                 LastError = null;
+                await ClearRecoveryAsync();
                 return true;
             }
             catch (Exception ex)
@@ -168,13 +141,14 @@ namespace Slinky.Models
         {
             try
             {
+                LastError = null;
+
                 var savePicker = new FileSavePicker();
                 var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.Window!);
                 WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hwnd);
 
                 savePicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
                 savePicker.FileTypeChoices.Add("Documento de texto", new List<string> { ".txt" });
-                savePicker.FileTypeChoices.Add("Markdown", new List<string> { ".md" });
                 savePicker.SuggestedFileName = File is not null
                     ? System.IO.Path.GetFileNameWithoutExtension(File.Name)
                     : "Nova nota";
@@ -189,6 +163,7 @@ namespace Slinky.Models
                 File = chosenFile;
                 IsDirty = false;
                 LastError = null;
+                await ClearRecoveryAsync();
                 return true;
             }
             catch (Exception ex)
@@ -251,26 +226,13 @@ namespace Slinky.Models
             }
         }
 
-        private async void AutosaveTimer_Tick(object sender, object e)
+        private async void AutosaveTimer_Tick(object? sender, object e)
         {
             autosaveTimer?.Stop();
 
-            // If this note already has a real file, autosave means actually keeping *that*
-            // up to date, not just a recovery snapshot — the manual "Salvar" button is then
-            // just "do it right now" instead of "wait ~2s", not the only way to persist.
-            if (File is not null)
+            if (!IsDirty)
             {
-                try
-                {
-                    await FileIO.WriteTextAsync(File, Text);
-                    IsDirty = false;
-                    LastError = null;
-                }
-                catch
-                {
-                    // Swallow here — the recovery snapshot below is still a fallback, and a
-                    // manual "Salvar" will surface the same error clearly if it keeps failing.
-                }
+                return;
             }
 
             try

@@ -1,9 +1,9 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Documents;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Printing;
+using Microsoft.UI.Windowing;
 using Slinky.Models;
 using Slinky.Services;
 using Slinky.Views;
@@ -22,6 +22,7 @@ namespace Slinky
     public sealed partial class MainWindow : Window
     {
         public ThemeService Theme => ThemeService.Instance;
+        private readonly ThemeTabStateHub tabThemeStates = new(ThemeService.Instance.Current);
 
         // ----- Printing state -----------------------------------------------------------
         private PrintDocument? printDocument;
@@ -30,6 +31,8 @@ namespace Slinky
         private string printContentText = string.Empty;
         private string printContentTitle = "Slinky";
         private PrintSettings currentPrintSettings = new();
+        private bool closeConfirmed;
+        private bool closePromptOpen;
 
         private sealed class PrintSettings
         {
@@ -41,11 +44,14 @@ namespace Slinky
         public MainWindow()
         {
             this.InitializeComponent();
+            WindowIconService.Apply(this);
+            AppWindow.Closing += MainAppWindow_Closing;
 
             ExtendsContentIntoTitleBar = true;
             SetTitleBar(AppTitleBar);
 
-            ThemeService.Instance.ThemeChanged += (s, e) => ApplyElementTheme();
+            ThemeService.Instance.ThemeChanged += ThemeService_ThemeChanged;
+            Closed += MainWindow_Closed;
             ApplyElementTheme();
 
             try
@@ -59,7 +65,6 @@ namespace Slinky
 
             // Start with a single blank note, just like Notepad does.
             AddNoteTab(new Note());
-            SyncFormatMenuItem();
         }
 
         private void ApplyElementTheme()
@@ -68,6 +73,41 @@ namespace Slinky
             {
                 root.RequestedTheme = ThemeService.Instance.ElementTheme;
             }
+
+            if (Microsoft.UI.Windowing.AppWindowTitleBar.IsCustomizationSupported())
+            {
+                var buttonColor = ThemeService.Instance.ElementTheme == ElementTheme.Light ? Colors.Black : Colors.White;
+                AppWindow.TitleBar.ButtonForegroundColor = buttonColor;
+                AppWindow.TitleBar.ButtonHoverForegroundColor = buttonColor;
+                AppWindow.TitleBar.ButtonPressedForegroundColor = buttonColor;
+            }
+
+            UpdateTabViewThemeResources();
+        }
+
+        private void ThemeService_ThemeChanged(object? sender, EventArgs e) => ApplyElementTheme();
+
+        private void MainWindow_Closed(object sender, WindowEventArgs args)
+        {
+            ThemeService.Instance.ThemeChanged -= ThemeService_ThemeChanged;
+            Closed -= MainWindow_Closed;
+        }
+
+        private void UpdateTabViewThemeResources()
+        {
+            var theme = ThemeService.Instance;
+
+            // Keep defaults for containers created by TabView and also write the same
+            // resources into every existing item. TabView caches the visual tree of an
+            // existing TabViewItem, so changing only TabView.Resources leaves old tabs
+            // stale when both themes share the same Light/Dark ElementTheme.
+            NotesTabView.Resources["TabViewItemHeaderBackground"] = theme.Surface;
+            NotesTabView.Resources["TabViewItemHeaderBackgroundSelected"] = theme.Background;
+            NotesTabView.Resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Surface;
+            NotesTabView.Resources["TabViewItemHeaderForeground"] = theme.Foreground;
+            NotesTabView.Resources["TabViewItemHeaderForegroundSelected"] = theme.Foreground;
+
+            tabThemeStates.Apply(theme.Current);
         }
 
         // ----- Startup: crash recovery, session restore, recent files ----------------
@@ -204,7 +244,6 @@ namespace Slinky
         {
             var page = new NotePage(note);
             page.RequestClose += (s, e) => RemoveTab(note);
-            page.FormatChanged += (s, e) => SyncFormatMenuItem();
 
             var tabItem = new TabViewItem
             {
@@ -235,8 +274,25 @@ namespace Slinky
                 NotesTabView.TabItems.Add(tabItem);
             }
 
+            tabThemeStates.Register(tabItem, _ => ApplyTabItemTheme(tabItem));
             NotesTabView.SelectedItem = tabItem;
             _ = RefreshSessionAsync();
+        }
+
+        private void ApplyTabItemTheme(TabViewItem tabItem)
+        {
+            var theme = ThemeService.Instance;
+            tabItem.Resources["TabViewItemHeaderBackground"] = theme.Surface;
+            tabItem.Resources["TabViewItemHeaderBackgroundSelected"] = theme.Background;
+            tabItem.Resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Surface;
+            tabItem.Resources["TabViewItemHeaderForeground"] = theme.Foreground;
+            tabItem.Resources["TabViewItemHeaderForegroundSelected"] = theme.Foreground;
+            tabItem.Background = theme.Surface;
+            tabItem.Foreground = theme.Foreground;
+            // Force the existing template's visual states to reevaluate even when both
+            // palettes are Dark (or both are Light), where RequestedTheme alone is unchanged.
+            tabItem.RequestedTheme = ElementTheme.Default;
+            tabItem.RequestedTheme = theme.ElementTheme;
         }
 
         /// <summary>Removes a note's tab (if it has one) and clears its recovery snapshot — the one place all tab-closing paths should go through.</summary>
@@ -248,6 +304,7 @@ namespace Slinky
 
             if (tabItem is not null)
             {
+                tabThemeStates.Unregister(tabItem);
                 NotesTabView.TabItems.Remove(tabItem);
             }
 
@@ -256,6 +313,12 @@ namespace Slinky
         }
 
         private NotePage? GetActiveNotePage() => (NotesTabView.SelectedItem as TabViewItem)?.Content as NotePage;
+
+        private List<Note> GetOpenNotes() => NotesTabView.TabItems.OfType<TabViewItem>()
+            .Select(t => t.Tag as Note)
+            .Where(n => n is not null)
+            .Cast<Note>()
+            .ToList();
 
         private async Task<bool> ConfirmCloseNoteAsync(Note note)
         {
@@ -295,11 +358,49 @@ namespace Slinky
             return true;
         }
 
-        private void NotesTabView_SelectionChanged(object sender, SelectionChangedEventArgs e) => SyncFormatMenuItem();
-
-        private void SyncFormatMenuItem()
+        private async void MainAppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
         {
-            FormatToggleMenuItem.IsChecked = GetActiveNotePage()?.IsFormatted ?? false;
+            if (closeConfirmed)
+            {
+                return;
+            }
+
+            args.Cancel = true;
+            if (closePromptOpen)
+            {
+                return;
+            }
+
+            closePromptOpen = true;
+            try
+            {
+                await ConfirmAndExitAsync();
+            }
+            finally
+            {
+                closePromptOpen = false;
+            }
+        }
+
+        private async Task ConfirmAndExitAsync()
+        {
+            var notes = GetOpenNotes();
+
+            foreach (var note in notes)
+            {
+                if (!await ConfirmCloseNoteAsync(note))
+                {
+                    return;
+                }
+            }
+
+            foreach (var note in notes)
+            {
+                await note.ClearRecoveryAsync();
+            }
+
+            closeConfirmed = true;
+            Application.Current.Exit();
         }
 
         private void NotesTabView_AddTabButtonClick(TabView sender, object args) => AddNoteTab(new Note());
@@ -358,7 +459,6 @@ namespace Slinky
 
             picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
             picker.FileTypeFilter.Add(".txt");
-            picker.FileTypeFilter.Add(".md");
 
             var file = await picker.PickSingleFileAsync();
             if (file is null)
@@ -407,26 +507,7 @@ namespace Slinky
 
         private async void SairMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var notes = NotesTabView.TabItems.OfType<TabViewItem>()
-                .Select(t => t.Tag as Note)
-                .Where(n => n is not null)
-                .Cast<Note>()
-                .ToList();
-
-            foreach (var note in notes)
-            {
-                if (!await ConfirmCloseNoteAsync(note))
-                {
-                    return;
-                }
-            }
-
-            foreach (var note in notes)
-            {
-                await note.ClearRecoveryAsync();
-            }
-
-            Application.Current.Exit();
+            await ConfirmAndExitAsync();
         }
 
         // ----- Menu: Editar ----------------------------------------------------------
@@ -444,16 +525,6 @@ namespace Slinky
         private void FindMenuItem_Click(object sender, RoutedEventArgs e) => GetActiveNotePage()?.OpenFindBar(withReplace: false);
 
         private void FindReplaceMenuItem_Click(object sender, RoutedEventArgs e) => GetActiveNotePage()?.OpenFindBar(withReplace: true);
-
-        // ----- Menu: Formatar ---------------------------------------------------------
-
-        private void FormatToggleMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is ToggleMenuFlyoutItem item)
-            {
-                GetActiveNotePage()?.SetFormatted(item.IsChecked);
-            }
-        }
 
         // ----- Atalhos de teclado -------------------------------------------------------
         // Only for actions with no native default handler. Ctrl+Z/X/C/V/A already work as
@@ -666,9 +737,9 @@ namespace Slinky
 
             // Estimate how much text fits per page from font metrics, then chunk the note's
             // text into that many pages. This avoids relying on live layout measurement of
-            // detached elements (RichTextBlockOverflow chaining), which is harder to verify
-            // without a Windows machine to test on — a rough-but-reliable page count is a
-            // better trade-off here than a precise pagination that might silently fail.
+            // detached elements, which is harder to verify without a Windows machine to test
+            // on — a rough-but-reliable page count is a better trade-off here than a precise
+            // pagination that might silently fail.
             double charWidth = fontSize * 0.6;
             double lineHeight = fontSize * 1.3;
             int charsPerLine = Math.Max(10, (int)(contentWidth / charWidth));
@@ -679,18 +750,15 @@ namespace Slinky
 
             foreach (var pageLines in pages)
             {
-                var block = new RichTextBlock
+                var block = new TextBlock
                 {
+                    Text = string.Join("\n", pageLines),
                     FontSize = fontSize,
                     FontFamily = new FontFamily("Cascadia Mono, Consolas, monospace"),
                     Width = contentWidth,
                     Height = contentHeight,
                     TextWrapping = TextWrapping.NoWrap
                 };
-
-                var paragraph = new Paragraph();
-                paragraph.Inlines.Add(new Run { Text = string.Join("\n", pageLines) });
-                block.Blocks.Add(paragraph);
 
                 var pageGrid = new Grid
                 {

@@ -67,7 +67,7 @@
             </Grid>
         </Grid>
 
-        <!-- Edit view: raw, continuous .txt/.md text — fills the whole tab, like Notepad.
+        <!-- Edit view: raw, continuous text — fills the whole tab, like Notepad.
              No border from a click (see NotePageRoot_Tapped) — but Tab-key navigation still
              shows one, via GotFocus/LostFocus below, so keyboard-only use isn't left guessing
              where focus is. -->
@@ -95,16 +95,5 @@
             </TextBox.Resources>
         </TextBox>
 
-        <!-- Preview view: rendered Markdown (read-only) -->
-        <ScrollViewer x:Name="PreviewScroller"
-                      Visibility="Collapsed"
-                      VerticalScrollBarVisibility="Auto"
-                      Padding="12"
-                      Grid.Row="2">
-            <RichTextBlock x:Name="PreviewBlock"
-                           TextWrapping="Wrap"
-                           Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"
-                           IsTextSelectionEnabled="True"/>
-        </ScrollViewer>
     </Grid>
 </Page>

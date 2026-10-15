@@ -12,6 +12,7 @@ namespace Slinky
         public ThemeWindow()
         {
             this.InitializeComponent();
+            WindowIconService.Apply(this);
 
             SelectRadioForCurrentTheme();
 

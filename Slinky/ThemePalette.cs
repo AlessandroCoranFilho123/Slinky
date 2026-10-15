@@ -40,7 +40,7 @@ namespace Slinky.Services
             _ => (0xF3, 0xF3, 0xF3)
         };
 
-        /// <summary>Used for the "selected" state (Formatar toggle, etc.) so it stays on-brand per theme.</summary>
+        /// <summary>Used for selected controls and tab chrome.</summary>
         public static (byte R, byte G, byte B) Accent(AppTheme theme) => theme switch
         {
             AppTheme.LightDefault => (0x00, 0x67, 0xC0),
