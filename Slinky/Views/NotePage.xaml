@@ -6,9 +6,15 @@
     xmlns:local="using:Slinky"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Loaded="NotePage_Loaded">
 
-    <Grid RowSpacing="4" Background="{x:Bind Theme.Background, Mode=OneWay}" Tapped="NotePageRoot_Tapped">
+    <Grid x:Name="EditorSurface"
+          RowSpacing="4"
+          Background="{x:Bind Theme.Background, Mode=OneWay}"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          Tapped="NotePageRoot_Tapped">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -87,6 +93,11 @@
                  Padding="12"
                  Grid.Row="2">
             <TextBox.Resources>
+                <SolidColorBrush x:Key="TextControlBackground" Color="Transparent"/>
+                <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent"/>
+                <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent"/>
+                <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="Transparent"/>
+                <SolidColorBrush x:Key="TextControlForegroundPointerOver" Color="Transparent"/>
                 <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent"/>
                 <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent"/>
                 <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent"/>

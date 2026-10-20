@@ -21,9 +21,28 @@ Um editor de texto leve para Windows, feito com WinUI 3. Nasceu da vontade de te
 
 Requer Windows 10 versão 1809 (build 17763) ou mais recente.
 
+## Como instalar localmente
+
+No Windows, execute `instalar-slinky.bat` na raiz do repositório. O script restaura as dependências, gera um pacote MSIX self-contained para a arquitetura da máquina, assina-o com um certificado de desenvolvimento local e instala o Slinky para o usuário atual.
+
+Para apenas gerar o pacote sem instalar, execute `instalar-slinky.bat --build-only`. O arquivo será criado em `Slinky/AppPackages`.
+
+O certificado de desenvolvimento é criado ou reutilizado no armazenamento do usuário atual (`CN=Alessandro`) e não é enviado para nenhum lugar. O script usa um certificado compatível com assinatura de pacotes, registra-o em `TrustedPeople` por meio do instalador de desenvolvimento do Windows e pode solicitar confirmação do UAC. Se o Windows bloquear sideloading, habilite o **Modo de Desenvolvedor** em **Configurações → Sistema → Para desenvolvedores**.
+
 ## Testes
 
 Os testes automatizados (`Slinky.Tests`, xUnit) cobrem busca/substituição, contraste WCAG, estados de abas e transições entre temas. Abra o **Test Explorer** no Visual Studio depois de compilar a solução.
+
+### Temas, abas e superfície de edição
+
+Cada aba aplica a paleta completa no momento em que é criada e novamente durante uma
+troca de tema. A superfície do editor e os estados `PointerOver`/`Focused` do `TextBox`
+usam a cor do tema, portanto passar o mouse sobre a área de texto não introduz uma cor
+do sistema nem exige selecionar a aba para atualizar a aparência.
+
+O hover do cabeçalho das abas permanece habilitado, mas seus estados normal, selecionado,
+hover e hover selecionado usam as cores da paleta atual. Isso mantém a diferenciação
+visual das abas sem voltar ao azul/branco ou preto/branco padrão do sistema.
 
 ## Sobre a capability `runFullTrust`
 

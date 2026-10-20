@@ -9,7 +9,7 @@
     mc:Ignorable="d"
     Title="Slinky">
 
-    <Grid x:Name="RootGrid" Background="{x:Bind Theme.Background, Mode=OneWay}" Loaded="RootGrid_Loaded">
+    <Grid x:Name="RootGrid" Background="{x:Bind Theme.Background, Mode=OneWay}" Loaded="RootGrid_Loaded" PointerPressed="RootGrid_PointerPressed" Tapped="RootGrid_Tapped">
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="NovoAccelerator_Invoked"/>
             <KeyboardAccelerator Key="T" Modifiers="Control" Invoked="NovaAbaAccelerator_Invoked"/>
@@ -38,7 +38,7 @@
             </TitleBar.IconSource>
         </TitleBar>
 
-        <MenuBar Grid.Row="1" Background="{x:Bind Theme.Surface, Mode=OneWay}">
+        <MenuBar x:Name="MainMenuBar" Grid.Row="1" Background="{x:Bind Theme.Surface, Mode=OneWay}">
             <MenuBar.Items>
 
                 <MenuBarItem Title="Arquivo">
@@ -90,6 +90,10 @@
         <TabView x:Name="NotesTabView"
                  Grid.Row="2"
                  TabWidthMode="Equal"
+                 HorizontalAlignment="Stretch"
+                 VerticalAlignment="Stretch"
+                 HorizontalContentAlignment="Stretch"
+                 VerticalContentAlignment="Stretch"
                  AddTabButtonClick="NotesTabView_AddTabButtonClick"
                  TabCloseRequested="NotesTabView_TabCloseRequested">
         </TabView>

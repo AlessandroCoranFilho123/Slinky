@@ -6,6 +6,7 @@ using System;
 using System.Threading.Tasks;
 using Slinky.Models;
 using Slinky.Services;
+using Slinky.Diagnostics;
 using Windows.ApplicationModel.DataTransfer;
 
 namespace Slinky.Views
@@ -38,6 +39,8 @@ namespace Slinky.Views
             // below — a two-way x:Bind on a live-typing TextBox can fight with the caret position
             // on every keystroke, which is exactly the "can only type on one line" symptom.
             NoteEditor.Text = noteModel.Text;
+            ApplyTheme();
+            EditorDiag.Attach(this, NoteEditor);
 
         }
         private Visibility PathRowVisibility(string? path) => string.IsNullOrEmpty(path) ? Visibility.Collapsed : Visibility.Visible;
@@ -66,23 +69,91 @@ namespace Slinky.Views
             NoteEditor.BorderThickness = new Thickness(0);
         }
 
-        // ----- Click anywhere in the tab to jump the caret to the end of the text -----------------
+        /// <summary>
+        /// The caret being rendered is not proof that the TextBox owns keyboard focus. Request
+        /// focus after the page enters the visual tree so a new empty note can be edited
+        /// immediately, without a compensating click.
+        /// </summary>
+        private void NotePage_Loaded(object sender, RoutedEventArgs e)
+        {
+            Loaded -= NotePage_Loaded;
+            if (FindBar.Visibility != Visibility.Visible)
+            {
+                NoteEditor.Focus(FocusState.Programmatic);
+            }
+        }
+
+        // ----- Fallback focus for taps outside the editor -----------------
 
         /// <summary>
-        /// A click anywhere in the tab (except inside the find/replace bar, which handles its
-        /// own clicks) focuses the editor and moves the caret to the end of whatever's already
-        /// there — rather than to the exact spot clicked, like a normal TextBox would.
+        /// The TextBox owns every tap inside its bounds. This is important both for existing
+        /// newline-created lines and for the visual area below the only line, which is not a
+        /// real document line. Only a tap outside the editor gets the page-level fallback.
         /// </summary>
         private void NotePageRoot_Tapped(object sender, TappedRoutedEventArgs e)
         {
-            if (e.OriginalSource is DependencyObject source && IsDescendantOf(source, FindBar))
+            var source = e.OriginalSource as DependencyObject;
+            bool tappedInsideEditor = source is not null && IsDescendantOf(source, NoteEditor);
+            bool tappedInsideFindBar = source is not null && IsDescendantOf(source, FindBar);
+            var position = e.GetPosition(NoteEditor);
+            bool withinEditorBounds = EditorTapRouting.IsWithinEditorBounds(
+                position.X,
+                position.Y,
+                NoteEditor.ActualWidth,
+                NoteEditor.ActualHeight);
+            EditorDiag.Routing("enter", tappedInsideEditor, tappedInsideFindBar, withinEditorBounds, NoteEditor);
+
+            if (EditorTapRouting.ShouldPreserveNativeHandling(tappedInsideEditor, tappedInsideFindBar))
             {
-                return; // let the find/replace bar's own controls handle their own taps
+                EditorDiag.Routing("preserve-native", tappedInsideEditor, tappedInsideFindBar, withinEditorBounds, NoteEditor);
+                return;
+            }
+
+            if (withinEditorBounds)
+            {
+                // The point is inside the editor surface but did not resolve to a text
+                // descendant (for example, visual space below the last logical line). Keep
+                // the existing valid caret and restore focus without inventing a line or
+                // moving the caret to the end of the document.
+                NoteEditor.Focus(FocusState.Pointer);
+                EditorDiag.Routing("focus-without-selection-change", tappedInsideEditor, tappedInsideFindBar, withinEditorBounds, NoteEditor);
+                return;
             }
 
             NoteEditor.Focus(FocusState.Pointer);
             int end = NoteEditor.Text.Length;
             NoteEditor.Select(end, 0);
+            EditorDiag.Routing("fallback-select-end", tappedInsideEditor, tappedInsideFindBar, withinEditorBounds, NoteEditor);
+        }
+
+        /// <summary>
+        /// Keeps the current valid caret when the click lands in visual space that is
+        /// outside the collapsed native TextBox surface. It intentionally does not select
+        /// or create a line; the document remains unchanged.
+        /// </summary>
+        public void FocusEditorWithoutMovingCaret()
+        {
+            NoteEditor.Focus(FocusState.Pointer);
+        }
+
+        /// <summary>
+        /// Applies the complete palette to the editor and its native TextBox template.
+        /// The template has separate PointerOver/Focused brushes, so setting only
+        /// TextBox.Background would still allow a system-colored hover surface.
+        /// </summary>
+        public void ApplyTheme()
+        {
+            var background = Theme.Background;
+            var foreground = Theme.Foreground;
+
+            EditorSurface.Background = background;
+            NoteEditor.Background = background;
+            NoteEditor.Foreground = foreground;
+            NoteEditor.Resources["TextControlBackground"] = background;
+            NoteEditor.Resources["TextControlBackgroundPointerOver"] = background;
+            NoteEditor.Resources["TextControlBackgroundFocused"] = background;
+            NoteEditor.Resources["TextControlBackgroundDisabled"] = background;
+            NoteEditor.Resources["TextControlForegroundPointerOver"] = foreground;
         }
 
         private static bool IsDescendantOf(DependencyObject element, DependencyObject ancestor)

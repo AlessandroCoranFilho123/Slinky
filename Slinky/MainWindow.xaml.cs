@@ -103,9 +103,12 @@ namespace Slinky
             // stale when both themes share the same Light/Dark ElementTheme.
             NotesTabView.Resources["TabViewItemHeaderBackground"] = theme.Surface;
             NotesTabView.Resources["TabViewItemHeaderBackgroundSelected"] = theme.Background;
-            NotesTabView.Resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Surface;
+            NotesTabView.Resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Background;
+            NotesTabView.Resources["TabViewItemHeaderBackgroundSelectedPointerOver"] = theme.Background;
             NotesTabView.Resources["TabViewItemHeaderForeground"] = theme.Foreground;
             NotesTabView.Resources["TabViewItemHeaderForegroundSelected"] = theme.Foreground;
+            NotesTabView.Resources["TabViewItemHeaderForegroundPointerOver"] = theme.Foreground;
+            NotesTabView.Resources["TabViewItemHeaderForegroundSelectedPointerOver"] = theme.Foreground;
 
             tabThemeStates.Apply(theme.Current);
         }
@@ -119,6 +122,54 @@ namespace Slinky
             var recoveredPaths = await CheckForRecoverableNotesAsync();
             await RestoreSessionAsync(recoveredPaths);
             await RefreshRecentFilesMenuAsync();
+        }
+
+        /// <summary>
+        /// The TabView can measure a single-line note to its content height. In that state,
+        /// the blank area below the first line belongs to the window rather than to NotePage,
+        /// so the page-level tap handler cannot receive it. Preserve the editor's valid caret
+        /// when that window-level surface is clicked, without inventing a document line.
+        /// </summary>
+        private void RootGrid_PointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            PreserveEditorFocusForWindowSurface(e.OriginalSource as DependencyObject);
+        }
+
+        private void RootGrid_Tapped(object sender, TappedRoutedEventArgs e)
+        {
+            PreserveEditorFocusForWindowSurface(e.OriginalSource as DependencyObject);
+        }
+
+        private void PreserveEditorFocusForWindowSurface(DependencyObject? source)
+        {
+            var activePage = GetActiveNotePage();
+
+            if (source is null || activePage is null ||
+                IsDescendantOf(source, NotesTabView) ||
+                IsDescendantOf(source, MainMenuBar) ||
+                IsDescendantOf(source, AppTitleBar) ||
+                IsDescendantOf(source, activePage))
+            {
+                return;
+            }
+
+            activePage.FocusEditorWithoutMovingCaret();
+        }
+
+        private static bool IsDescendantOf(DependencyObject element, DependencyObject ancestor)
+        {
+            var current = element;
+            while (current is not null)
+            {
+                if (ReferenceEquals(current, ancestor))
+                {
+                    return true;
+                }
+
+                current = VisualTreeHelper.GetParent(current);
+            }
+
+            return false;
         }
 
         /// <summary>Returns the file paths (if any) that were just restored, so session-restore can skip re-opening the same files stale.</summary>
@@ -249,7 +300,9 @@ namespace Slinky
             {
                 Header = note.DisplayName,
                 Content = page,
-                Tag = note
+                Tag = note,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch,
+                VerticalContentAlignment = VerticalAlignment.Stretch
             };
 
             note.PropertyChanged += (s, e) =>
@@ -284,11 +337,15 @@ namespace Slinky
             var theme = ThemeService.Instance;
             tabItem.Resources["TabViewItemHeaderBackground"] = theme.Surface;
             tabItem.Resources["TabViewItemHeaderBackgroundSelected"] = theme.Background;
-            tabItem.Resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Surface;
+            tabItem.Resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Background;
+            tabItem.Resources["TabViewItemHeaderBackgroundSelectedPointerOver"] = theme.Background;
             tabItem.Resources["TabViewItemHeaderForeground"] = theme.Foreground;
             tabItem.Resources["TabViewItemHeaderForegroundSelected"] = theme.Foreground;
+            tabItem.Resources["TabViewItemHeaderForegroundPointerOver"] = theme.Foreground;
+            tabItem.Resources["TabViewItemHeaderForegroundSelectedPointerOver"] = theme.Foreground;
             tabItem.Background = theme.Surface;
             tabItem.Foreground = theme.Foreground;
+            (tabItem.Content as NotePage)?.ApplyTheme();
             // Force the existing template's visual states to reevaluate even when both
             // palettes are Dark (or both are Light), where RequestedTheme alone is unchanged.
             tabItem.RequestedTheme = ElementTheme.Default;
