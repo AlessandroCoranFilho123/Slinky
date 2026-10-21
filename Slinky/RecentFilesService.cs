@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Threading;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
 using Slinky;
@@ -25,7 +26,9 @@ namespace Slinky.Services
     public static class RecentFilesService
     {
         private const string SettingsFileName = "recent-files.json";
+        private const string TemporarySettingsFileName = "recent-files.json.tmp";
         private const int MaxEntries = 10;
+        private static readonly SemaphoreSlim SaveGate = new(1, 1);
 
         public static async Task<List<RecentFileEntry>> LoadAsync()
         {
@@ -48,15 +51,21 @@ namespace Slinky.Services
 
         private static async Task SaveAsync(List<RecentFileEntry> entries)
         {
+            await SaveGate.WaitAsync();
             try
             {
                 var folder = ApplicationData.Current.LocalFolder;
-                var file = await folder.CreateFileAsync(SettingsFileName, CreationCollisionOption.ReplaceExisting);
-                await FileIO.WriteTextAsync(file, System.Text.Json.JsonSerializer.Serialize(entries));
+                var temporaryFile = await folder.CreateFileAsync(TemporarySettingsFileName, CreationCollisionOption.ReplaceExisting);
+                await FileIO.WriteTextAsync(temporaryFile, System.Text.Json.JsonSerializer.Serialize(entries));
+                await temporaryFile.MoveAsync(folder, SettingsFileName, NameCollisionOption.ReplaceExisting);
             }
             catch
             {
                 // MRU is a convenience, not critical data — never let this interrupt normal use.
+            }
+            finally
+            {
+                SaveGate.Release();
             }
         }
 

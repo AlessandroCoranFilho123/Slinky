@@ -92,4 +92,14 @@ public sealed class PersistenceTests
         Assert.DoesNotContain(updated, entry => entry.Token == "token-5");
         Assert.Contains(updated, entry => entry.Token == "token-10");
     }
+
+    [Fact]
+    public void SessionRestorePolicy_PreservesOrderAndSkipsRecoveredOrDuplicatedPaths()
+    {
+        var session = new[] { "C:\\one.txt", "C:\\two.txt", "c:\\ONE.TXT", "C:\\three.txt" };
+
+        var result = SessionRestorePolicy.Filter(session, path => path, new[] { "c:\\two.TXT" }).ToArray();
+
+        Assert.Equal(new[] { "C:\\one.txt", "C:\\three.txt" }, result);
+    }
 }

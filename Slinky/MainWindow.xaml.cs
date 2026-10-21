@@ -64,8 +64,8 @@ namespace Slinky
                 // Printing just won't be available in this environment; the rest of the app still works.
             }
 
-            // Start with a single blank note, just like Notepad does.
-            AddNoteTab(new Note());
+            // The initial blank note is created after session/recovery restoration.
+            // Creating it here would leave an extra empty tab on every restored session.
         }
 
         private void ApplyElementTheme()
@@ -125,9 +125,15 @@ namespace Slinky
                 var recoveredPaths = await CheckForRecoverableNotesAsync();
                 await RestoreSessionAsync(recoveredPaths);
                 await RefreshRecentFilesMenuAsync();
+
             }
             finally
             {
+                if (NotesTabView.TabItems.Count == 0)
+                {
+                    AddNoteTab(new Note());
+                }
+
                 startupRestorationInProgress = false;
                 await RefreshSessionAsync();
             }
@@ -232,13 +238,8 @@ namespace Slinky
         {
             var files = await SessionService.LoadAndClearAsync();
 
-            foreach (var file in files)
+            foreach (var file in SessionRestorePolicy.Filter(files, file => file.Path, excludePaths))
             {
-                if (excludePaths.Contains(file.Path))
-                {
-                    continue; // already reopened via crash recovery above, with possibly newer content
-                }
-
                 var note = new Note();
                 if (await note.OpenAsync(file))
                 {
