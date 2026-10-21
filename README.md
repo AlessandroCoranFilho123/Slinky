@@ -32,6 +32,8 @@ O certificado de desenvolvimento é criado ou reutilizado no armazenamento do us
 Durante a instalação local, o certificado autoassinado também pode ser registrado em
 `TrustedPeople` e `Root` do computador para que o Windows aceite a assinatura do MSIX.
 Esse certificado é apenas de desenvolvimento; não é usado nos pacotes de distribuição.
+
+Para instalar um pacote publicado, baixe na [release mais recente](https://github.com/AlessandroCoranFilho123/Slinky/releases/latest) o `.msixbundle`, `Slinky-Development.cer` e `Install-Slinky.ps1` na mesma pasta. Execute `Install-Slinky.ps1` e aceite o UAC: ele registra o certificado em `TrustedPeople` e `Root` do computador, remove somente uma instalação anterior do Slinky e instala o pacote.
 Para removê-lo, abra `certmgr.msc` ou o Gerenciador de Certificados do computador e
 remova os certificados `CN=Alessandro` que foram criados para o Slinky.
 
