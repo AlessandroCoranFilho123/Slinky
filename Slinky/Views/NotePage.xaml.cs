@@ -344,9 +344,9 @@ namespace Slinky.Views
             }
         }
 
-        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e) => FindNextFrom(0, forward: true);
+        private void FindTextBox_TextChanged(object sender, TextChangedEventArgs e) => FindNextFrom(0, forward: true, focusEditor: false);
 
-        private void FindOption_Changed(object sender, RoutedEventArgs e) => FindNextFrom(0, forward: true);
+        private void FindOption_Changed(object sender, RoutedEventArgs e) => FindNextFrom(0, forward: true, focusEditor: false);
 
         private void FindNext_Click(object sender, RoutedEventArgs e) =>
             FindNextFrom(NoteEditor.SelectionStart + NoteEditor.SelectionLength, forward: true);
@@ -354,7 +354,7 @@ namespace Slinky.Views
         private void FindPrevious_Click(object sender, RoutedEventArgs e) =>
             FindNextFrom(NoteEditor.SelectionStart - 1, forward: false);
 
-        private void FindNextFrom(int fromIndex, bool forward)
+        private void FindNextFrom(int fromIndex, bool forward, bool focusEditor = true)
         {
             var term = FindTextBox.Text;
             if (string.IsNullOrEmpty(term))
@@ -375,7 +375,10 @@ namespace Slinky.Views
                 return;
             }
 
-            NoteEditor.Focus(FocusState.Programmatic);
+            if (focusEditor)
+            {
+                NoteEditor.Focus(FocusState.Programmatic);
+            }
             NoteEditor.Select(index, term.Length);
             UpdateFindStatus();
         }

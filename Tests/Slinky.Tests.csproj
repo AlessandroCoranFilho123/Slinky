@@ -38,6 +38,7 @@
     <Compile Include="..\Slinky\RecoveryLifecycle.cs" Link="Linked\RecoveryLifecycle.cs" />
     <Compile Include="..\Slinky\RecentFileListPolicy.cs" Link="Linked\RecentFileListPolicy.cs" />
     <Compile Include="..\Slinky\SessionRestorePolicy.cs" Link="Linked\SessionRestorePolicy.cs" />
+    <Compile Include="..\Slinky\PrintPagination.cs" Link="Linked\PrintPagination.cs" />
   </ItemGroup>
 
 </Project>

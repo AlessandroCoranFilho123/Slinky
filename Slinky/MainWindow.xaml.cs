@@ -10,7 +10,6 @@ using Slinky.Views;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Windows.Graphics.Printing;
 using Windows.Storage.Pickers;
@@ -768,8 +767,8 @@ namespace Slinky
             return new PrintSettings
             {
                 Landscape = landscapeRadio.IsChecked == true,
-                MarginInches = marginBox.Value,
-                ScalePercent = scaleSlider.Value
+                MarginInches = double.IsNaN(marginBox.Value) ? currentPrintSettings.MarginInches : marginBox.Value,
+                ScalePercent = double.IsNaN(scaleSlider.Value) ? currentPrintSettings.ScalePercent : scaleSlider.Value
             };
         }
 
@@ -800,46 +799,37 @@ namespace Slinky
             options.Orientation = currentPrintSettings.Landscape ? PrintOrientation.Landscape : PrintOrientation.Portrait;
             var pageDescription = options.GetPageDescription(0);
 
-            double marginPixels = currentPrintSettings.MarginInches * 96.0;
             double pageWidth = pageDescription.PageSize.Width;
             double pageHeight = pageDescription.PageSize.Height;
-            double contentWidth = Math.Max(pageWidth - marginPixels * 2, 50);
-            double contentHeight = Math.Max(pageHeight - marginPixels * 2, 50);
+            var pages = PrintPagination.Paginate(
+                printContentText,
+                pageWidth,
+                pageHeight,
+                currentPrintSettings.MarginInches,
+                currentPrintSettings.ScalePercent);
 
-            double fontSize = 12 * (currentPrintSettings.ScalePercent / 100.0);
-
-            // Estimate how much text fits per page from font metrics, then chunk the note's
-            // text into that many pages. This avoids relying on live layout measurement of
-            // detached elements, which is harder to verify without a Windows machine to test
-            // on — a rough-but-reliable page count is a better trade-off here than a precise
-            // pagination that might silently fail.
-            double charWidth = fontSize * 0.6;
-            double lineHeight = fontSize * 1.3;
-            int charsPerLine = Math.Max(10, (int)(contentWidth / charWidth));
-            int linesPerPage = Math.Max(5, (int)(contentHeight / lineHeight));
-
-            var wrappedLines = WrapText(printContentText, charsPerLine);
-            var pages = Chunk(wrappedLines, linesPerPage);
-
-            foreach (var pageLines in pages)
+            foreach (var page in pages)
             {
                 var block = new TextBlock
                 {
-                    Text = string.Join("\n", pageLines),
-                    FontSize = fontSize,
+                    Text = string.Join("\n", page.Lines),
+                    FontSize = page.FontSize,
                     FontFamily = new FontFamily("Cascadia Mono, Consolas, monospace"),
-                    Width = contentWidth,
-                    Height = contentHeight,
-                    TextWrapping = TextWrapping.NoWrap
+                    Width = page.ContentWidth,
+                    Height = page.ContentHeight,
+                    Foreground = new SolidColorBrush(Colors.Black),
+                    TextWrapping = TextWrapping.NoWrap,
+                    VerticalAlignment = VerticalAlignment.Top
                 };
 
                 var pageGrid = new Grid
                 {
                     Width = pageWidth,
                     Height = pageHeight,
-                    Background = new SolidColorBrush(Colors.White),
-                    Margin = new Thickness(marginPixels)
+                    Background = new SolidColorBrush(Colors.White)
                 };
+                pageGrid.Padding = new Thickness(
+                    Math.Max(0, currentPrintSettings.MarginInches) * 96.0);
                 pageGrid.Children.Add(block);
 
                 printPreviewPages.Add(pageGrid);
@@ -860,59 +850,6 @@ namespace Slinky
                 printDocument!.AddPage(page);
             }
             printDocument!.AddPagesComplete();
-        }
-
-        private static List<string> WrapText(string text, int width)
-        {
-            var result = new List<string>();
-
-            foreach (var rawLine in text.Replace("\r\n", "\n").Split('\n'))
-            {
-                if (rawLine.Length <= width)
-                {
-                    result.Add(rawLine);
-                    continue;
-                }
-
-                var words = rawLine.Split(' ');
-                var current = new StringBuilder();
-
-                foreach (var word in words)
-                {
-                    if (current.Length > 0 && current.Length + 1 + word.Length > width)
-                    {
-                        result.Add(current.ToString());
-                        current.Clear();
-                    }
-
-                    if (current.Length > 0) current.Append(' ');
-                    current.Append(word);
-                }
-
-                if (current.Length > 0)
-                {
-                    result.Add(current.ToString());
-                }
-            }
-
-            return result;
-        }
-
-        private static List<List<string>> Chunk(List<string> lines, int size)
-        {
-            var chunks = new List<List<string>>();
-
-            for (int i = 0; i < lines.Count; i += size)
-            {
-                chunks.Add(lines.GetRange(i, Math.Min(size, lines.Count - i)));
-            }
-
-            if (chunks.Count == 0)
-            {
-                chunks.Add(new List<string>());
-            }
-
-            return chunks;
         }
 
         // ----- Small helpers -----------------------------------------------------------
