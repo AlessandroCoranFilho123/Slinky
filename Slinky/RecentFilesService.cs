@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
+using Slinky;
 
 namespace Slinky.Services
 {
@@ -64,13 +65,6 @@ namespace Slinky.Services
         {
             var entries = await LoadAsync();
 
-            var existing = entries.FirstOrDefault(e => string.Equals(e.Path, file.Path, StringComparison.OrdinalIgnoreCase));
-            if (existing is not null)
-            {
-                TryRemoveFromList(existing.Token);
-                entries.Remove(existing);
-            }
-
             string token;
             try
             {
@@ -81,14 +75,20 @@ namespace Slinky.Services
                 return; // the WinRT list may be full or unavailable — MRU just won't track this one
             }
 
-            entries.Insert(0, new RecentFileEntry { Token = token, DisplayName = file.Name, Path = file.Path });
+            var previousTokens = entries.Select(entry => entry.Token).ToHashSet(StringComparer.Ordinal);
+            var updated = RecentFileListPolicy.Insert(
+                entries.Select(entry => new RecentFileListEntry(entry.Token, entry.DisplayName, entry.Path)),
+                new RecentFileListEntry(token, file.Name, file.Path),
+                MaxEntries);
 
-            while (entries.Count > MaxEntries)
+            foreach (var removedToken in previousTokens.Except(updated.Select(entry => entry.Token), StringComparer.Ordinal))
             {
-                var last = entries[^1];
-                TryRemoveFromList(last.Token);
-                entries.RemoveAt(entries.Count - 1);
+                TryRemoveFromList(removedToken);
             }
+
+            entries = updated
+                .Select(entry => new RecentFileEntry { Token = entry.Token, DisplayName = entry.DisplayName, Path = entry.Path })
+                .ToList();
 
             await SaveAsync(entries);
         }

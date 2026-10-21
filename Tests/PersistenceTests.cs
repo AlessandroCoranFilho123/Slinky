@@ -76,4 +76,20 @@ public sealed class PersistenceTests
         Assert.False(lifecycle.CanSchedule);
         Assert.False(lifecycle.TryBeginWrite());
     }
+
+    [Fact]
+    public void RecentFileListPolicy_DeduplicatesBumpsAndCapsEntries()
+    {
+        var current = Enumerable.Range(1, 10)
+            .Select(index => new RecentFileListEntry($"token-{index}", $"Arquivo {index}", $"C:\\arquivo-{index}.txt"));
+
+        var updated = RecentFileListPolicy.Insert(
+            current,
+            new RecentFileListEntry("token-new", "Arquivo 5 atualizado", "c:\\ARQUIVO-5.TXT"));
+
+        Assert.Equal(10, updated.Count);
+        Assert.Equal("token-new", updated[0].Token);
+        Assert.DoesNotContain(updated, entry => entry.Token == "token-5");
+        Assert.Contains(updated, entry => entry.Token == "token-10");
+    }
 }

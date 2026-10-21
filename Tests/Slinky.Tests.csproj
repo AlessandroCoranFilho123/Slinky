@@ -36,6 +36,7 @@
     <Compile Include="..\Slinky\SessionStateCodec.cs" Link="Linked\SessionStateCodec.cs" />
     <Compile Include="..\Slinky\RecoverySnapshot.cs" Link="Linked\RecoverySnapshot.cs" />
     <Compile Include="..\Slinky\RecoveryLifecycle.cs" Link="Linked\RecoveryLifecycle.cs" />
+    <Compile Include="..\Slinky\RecentFileListPolicy.cs" Link="Linked\RecentFileListPolicy.cs" />
   </ItemGroup>
 
 </Project>
