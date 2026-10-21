@@ -1,13 +1,10 @@
-name: Testes
-
-# Roda a suíte net8.0 independente de WinUI no CI. O app também é compilado
-# localmente/na validação de Windows porque seu host exige o runtime do WinUI 3.
+name: Testes e build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   test:
@@ -27,3 +24,16 @@ jobs:
 
       - name: Rodar testes
         run: dotnet test Tests/Slinky.Tests.csproj --configuration Release --no-restore
+
+      - name: Restaurar aplicativo WinUI x64
+        run: dotnet restore Slinky/Slinky.csproj --runtime win-x64
+
+      - name: Compilar aplicativo WinUI x64
+        run: >-
+          dotnet build Slinky/Slinky.csproj
+          --configuration Release
+          --no-restore
+          --property:Platform=x64
+          --runtime win-x64
+          --property:PublishReadyToRun=false
+          --property:PublishTrimmed=false

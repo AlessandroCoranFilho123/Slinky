@@ -4,7 +4,7 @@ Um editor de texto leve para Windows, feito com WinUI 3. Nasceu da vontade de te
 
 ## Funcionalidades
 
-- Abas — várias notas na mesma janela, sem multiplicar processos.
+- Abas — várias notas na mesma janela.
 - `.txt` nativo, com uma superfície de edição simples e rápida.
 - 5 temas (Claro Padrão/Amarelado, Escuro Padrão/Azulado/Dracula), todos com contraste WCAG AA verificado.
 - Localizar / Localizar e substituir.
@@ -31,7 +31,19 @@ O certificado de desenvolvimento é criado ou reutilizado no armazenamento do us
 
 ## Testes
 
-Os testes automatizados (`Slinky.Tests`, xUnit) cobrem busca/substituição, contraste WCAG, estados de abas e transições entre temas. Abra o **Test Explorer** no Visual Studio depois de compilar a solução.
+Os testes automatizados (`Slinky.Tests`, xUnit) cobrem busca/substituição, contraste WCAG, estados de abas, transições entre temas e leitura/escrita de texto com diferentes codificações e finais de linha. O workflow do GitHub Actions executa os testes e também compila o aplicativo WinUI x64 em Release.
+
+### Persistência de documentos
+
+O editor mantém o texto internamente com finais de linha `LF`. Ao abrir um arquivo,
+o Slinky detecta UTF-8, UTF-8 com BOM, UTF-16 LE/BE e Windows-1252, preservando a
+codificação, o BOM e o estilo de final de linha ao salvar. Novos documentos usam
+UTF-8 sem BOM e CRLF.
+
+A sessão de arquivos abertos é separada do recovery de conteúdo não salvo. A sessão
+usa `FutureAccessList`; o recovery usa snapshots JSON gravados de forma temporária e
+substituídos atomicamente. Salvar remove o snapshot atual, mas o recovery continua
+disponível para edições futuras. Fechar a aba desativa novos snapshots daquela nota.
 
 ### Temas, abas e superfície de edição
 
