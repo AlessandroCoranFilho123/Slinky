@@ -159,14 +159,16 @@ jobs:
       - name: Instalar pacote MSIX unsigned
         shell: pwsh
         run: |
-          $bundle = Get-ChildItem -Path msix -Filter *.msixbundle -Recurse -File | Select-Object -First 1
-          if ($null -eq $bundle) { throw 'O artefato MSIX validado não contém um MSIXBundle.' }
+          $package = Get-ChildItem -Path msix -Filter *.msix -Recurse -File |
+            Where-Object { $_.Name -notmatch 'scale-' -and $_.Name -match '_x64\.msix$' } |
+            Select-Object -First 1
+          if ($null -eq $package) { throw 'O artefato MSIX validado não contém o pacote x64.' }
           $command = Get-Command Add-AppxPackage -ErrorAction Stop
           if (-not $command.Parameters.ContainsKey('AllowUnsigned')) {
             throw 'O runner não oferece suporte à instalação de pacote MSIX unsigned.'
           }
-          Add-AppxPackage -Path $bundle.FullName -AllowUnsigned -ForceApplicationShutdown -ForceUpdateFromAnyVersion
-          Write-Host "Pacote instalado: $($bundle.FullName)"
+          Add-AppxPackage -Path $package.FullName -AllowUnsigned -ForceApplicationShutdown -ForceUpdateFromAnyVersion
+          Write-Host "Pacote instalado: $($package.FullName)"
 
       - name: Confirmar pacote instalado
         shell: pwsh
