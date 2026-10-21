@@ -38,6 +38,7 @@ namespace Slinky.Models
 
         private readonly Guid recoveryId = Guid.NewGuid();
         private DispatcherTimer? autosaveTimer;
+        private bool recoveryClosed;
 
         private StorageFile? file;
         public StorageFile? File
@@ -138,7 +139,7 @@ namespace Slinky.Models
                 await FileIO.WriteBytesAsync(File, TextFileCodec.Encode(Text, EncodingKind, HasBom, LineEnding));
                 IsDirty = false;
                 LastError = null;
-                await ClearRecoveryAsync();
+                await ClearRecoveryAsync(closeNote: false);
                 return true;
             }
             catch (Exception ex)
@@ -175,7 +176,7 @@ namespace Slinky.Models
                 File = chosenFile;
                 IsDirty = false;
                 LastError = null;
-                await ClearRecoveryAsync();
+                await ClearRecoveryAsync(closeNote: false);
                 return true;
             }
             catch (Exception ex)
@@ -224,6 +225,11 @@ namespace Slinky.Models
         {
             try
             {
+                if (recoveryClosed)
+                {
+                    return;
+                }
+
                 if (autosaveTimer is null)
                 {
                     autosaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
@@ -245,13 +251,18 @@ namespace Slinky.Models
         {
             autosaveTimer?.Stop();
 
-            if (!IsDirty)
+            if (recoveryClosed || !IsDirty)
             {
                 return;
             }
 
             try
             {
+                if (recoveryClosed || !IsDirty)
+                {
+                    return;
+                }
+
                 var snapshot = new RecoverySnapshot
                 {
                     Text = Text,
@@ -270,8 +281,13 @@ namespace Slinky.Models
         }
 
         /// <summary>Call when this note is closed cleanly (saved, discarded on purpose, or deleted) so its recovery snapshot doesn't linger.</summary>
-        public async Task ClearRecoveryAsync()
+        public async Task ClearRecoveryAsync(bool closeNote = true)
         {
+            if (closeNote)
+            {
+                recoveryClosed = true;
+            }
+
             autosaveTimer?.Stop();
 
             try
