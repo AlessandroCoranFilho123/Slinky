@@ -186,7 +186,9 @@ jobs:
       - name: Confirmar pacote instalado
         shell: pwsh
         run: |
-          $installed = Get-AppxPackage | Where-Object { $_.Name -like '*Slinky*' }
+          $installed = Get-AppxPackage | Where-Object {
+            $_.Name -eq '46cebc95-b2f1-4e6a-819f-0227204d1c62' -or $_.DisplayName -eq 'Slinky'
+          }
           if ($null -eq $installed) { throw 'O pacote Slinky não foi encontrado após a instalação.' }
           $installed | Format-List Name, Version, Architecture
 
@@ -194,7 +196,9 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          Get-AppxPackage | Where-Object { $_.Name -like '*Slinky*' } | Remove-AppxPackage -ErrorAction SilentlyContinue
+          Get-AppxPackage | Where-Object {
+            $_.Name -eq '46cebc95-b2f1-4e6a-819f-0227204d1c62' -or $_.DisplayName -eq 'Slinky'
+          } | Remove-AppxPackage -ErrorAction SilentlyContinue
           Get-ChildItem Cert:\LocalMachine\TrustedPeople,Cert:\LocalMachine\Root -ErrorAction SilentlyContinue |
             Where-Object { $_.Subject -eq 'CN=Slinky CI' } |
             Remove-Item -Force -ErrorAction SilentlyContinue
