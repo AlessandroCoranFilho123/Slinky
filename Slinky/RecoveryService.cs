@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Threading;
 using Windows.Storage;
+using Slinky;
 
 namespace Slinky.Services
 {
@@ -15,6 +17,12 @@ namespace Slinky.Services
         public string? FilePath { get; set; }
 
         public DateTime SavedAt { get; set; }
+
+        public TextEncodingKind Encoding { get; set; } = TextEncodingKind.Utf8;
+
+        public bool HasBom { get; set; }
+
+        public LineEndingKind LineEnding { get; set; } = LineEndingKind.CrLf;
     }
 
     /// <summary>
@@ -25,9 +33,54 @@ namespace Slinky.Services
     public static class RecoveryService
     {
         private const string FolderName = "Recovery";
+        private static readonly SemaphoreSlim Gate = new(1, 1);
 
         public static async Task<StorageFolder> GetRecoveryFolderAsync() =>
             await ApplicationData.Current.LocalFolder.CreateFolderAsync(FolderName, CreationCollisionOption.OpenIfExists);
+
+        public static async Task SaveSnapshotAsync(Guid recoveryId, RecoverySnapshot snapshot)
+        {
+            await Gate.WaitAsync();
+            StorageFile? temporaryFile = null;
+
+            try
+            {
+                var folder = await GetRecoveryFolderAsync();
+                var fileName = $"{recoveryId}.json";
+                var temporaryName = $"{fileName}.{Guid.NewGuid():N}.tmp";
+                temporaryFile = await folder.CreateFileAsync(temporaryName, CreationCollisionOption.ReplaceExisting);
+                await FileIO.WriteTextAsync(temporaryFile, JsonSerializer.Serialize(snapshot));
+                await temporaryFile.MoveAsync(folder, fileName, NameCollisionOption.ReplaceExisting);
+                temporaryFile = null;
+            }
+            finally
+            {
+                if (temporaryFile is not null)
+                {
+                    try { await temporaryFile.DeleteAsync(); } catch { }
+                }
+
+                Gate.Release();
+            }
+        }
+
+        public static async Task DeleteSnapshotAsync(Guid recoveryId)
+        {
+            await Gate.WaitAsync();
+
+            try
+            {
+                var folder = await GetRecoveryFolderAsync();
+                if (await folder.TryGetItemAsync($"{recoveryId}.json") is StorageFile snapshotFile)
+                {
+                    await snapshotFile.DeleteAsync();
+                }
+            }
+            finally
+            {
+                Gate.Release();
+            }
+        }
 
         /// <summary>Reads every leftover snapshot file. Corrupt/partial files are skipped rather than blocking startup.</summary>
         public static async Task<List<(StorageFile File, RecoverySnapshot Snapshot)>> FindLeftoverSnapshotsAsync()

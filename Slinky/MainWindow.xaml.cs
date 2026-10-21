@@ -33,6 +33,7 @@ namespace Slinky
         private PrintSettings currentPrintSettings = new();
         private bool closeConfirmed;
         private bool closePromptOpen;
+        private bool startupRestorationInProgress = true;
 
         private sealed class PrintSettings
         {
@@ -119,9 +120,17 @@ namespace Slinky
         {
             RootGrid.Loaded -= RootGrid_Loaded; // only run this once, at startup
 
-            var recoveredPaths = await CheckForRecoverableNotesAsync();
-            await RestoreSessionAsync(recoveredPaths);
-            await RefreshRecentFilesMenuAsync();
+            try
+            {
+                var recoveredPaths = await CheckForRecoverableNotesAsync();
+                await RestoreSessionAsync(recoveredPaths);
+                await RefreshRecentFilesMenuAsync();
+            }
+            finally
+            {
+                startupRestorationInProgress = false;
+                await RefreshSessionAsync();
+            }
         }
 
         /// <summary>
@@ -313,7 +322,10 @@ namespace Slinky
                 }
                 if (e.PropertyName == nameof(Note.File))
                 {
-                    _ = RefreshSessionAsync();
+                    if (!startupRestorationInProgress)
+                    {
+                        _ = RefreshSessionAsync();
+                    }
                     _ = RefreshRecentFilesMenuAsync();
                 }
             };
@@ -329,7 +341,10 @@ namespace Slinky
 
             tabThemeStates.Register(tabItem, _ => ApplyTabItemTheme(tabItem));
             NotesTabView.SelectedItem = tabItem;
-            _ = RefreshSessionAsync();
+            if (!startupRestorationInProgress)
+            {
+                _ = RefreshSessionAsync();
+            }
         }
 
         private void ApplyTabItemTheme(TabViewItem tabItem)

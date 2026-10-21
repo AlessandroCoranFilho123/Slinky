@@ -18,6 +18,7 @@ namespace Slinky.Views
         private const double MaxFontSize = 40;
 
         private readonly Note noteModel;
+        private bool suppressEditorChange;
 
         public ThemeService Theme => ThemeService.Instance;
 
@@ -38,7 +39,9 @@ namespace Slinky.Views
             // NoteEditor.Text is set here (not x:Bind) and kept in sync via NoteEditor_TextChanged
             // below — a two-way x:Bind on a live-typing TextBox can fight with the caret position
             // on every keystroke, which is exactly the "can only type on one line" symptom.
+            suppressEditorChange = true;
             NoteEditor.Text = noteModel.Text;
+            suppressEditorChange = false;
             ApplyTheme();
             EditorDiag.Attach(this, NoteEditor);
 
@@ -47,6 +50,11 @@ namespace Slinky.Views
 
         private void NoteEditor_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (suppressEditorChange)
+            {
+                return;
+            }
+
             noteModel.Text = NoteEditor.Text;
         }
 

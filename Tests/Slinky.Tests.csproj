@@ -32,6 +32,7 @@
     <Compile Include="..\Slinky\ThemeTabState.cs" Link="Linked\ThemeTabState.cs" />
     <Compile Include="..\Slinky\TextSearch.cs" Link="Linked\TextSearch.cs" />
     <Compile Include="..\Slinky\EditorTapRouting.cs" Link="Linked\EditorTapRouting.cs" />
+    <Compile Include="..\Slinky\TextFileCodec.cs" Link="Linked\TextFileCodec.cs" />
   </ItemGroup>
 
 </Project>

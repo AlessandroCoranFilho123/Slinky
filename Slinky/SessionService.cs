@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
 using System;
@@ -19,19 +20,31 @@ namespace Slinky.Services
     public static class SessionService
     {
         private const string SessionFileName = "session.json";
+        private const string TemporarySessionFileName = "session.json.tmp";
+        private static readonly SemaphoreSlim Gate = new(1, 1);
+        private static readonly List<string> CurrentTokens = new();
 
         /// <summary>Call whenever the set of open, file-backed tabs changes (a tab opens or closes).</summary>
         public static async Task SaveOpenFilesAsync(IEnumerable<StorageFile> openFiles)
         {
+            await Gate.WaitAsync();
             try
             {
                 var tokens = new List<string>();
+
+                foreach (var oldToken in CurrentTokens)
+                {
+                    try { StorageApplicationPermissions.FutureAccessList.Remove(oldToken); } catch { }
+                }
+                CurrentTokens.Clear();
 
                 foreach (var file in openFiles)
                 {
                     try
                     {
-                        tokens.Add(StorageApplicationPermissions.FutureAccessList.Add(file, file.Path));
+                        var token = StorageApplicationPermissions.FutureAccessList.Add(file, file.Path);
+                        tokens.Add(token);
+                        CurrentTokens.Add(token);
                     }
                     catch
                     {
@@ -40,12 +53,17 @@ namespace Slinky.Services
                 }
 
                 var folder = ApplicationData.Current.LocalFolder;
-                var file2 = await folder.CreateFileAsync(SessionFileName, CreationCollisionOption.ReplaceExisting);
-                await FileIO.WriteTextAsync(file2, System.Text.Json.JsonSerializer.Serialize(tokens));
+                var temporaryFile = await folder.CreateFileAsync(TemporarySessionFileName, CreationCollisionOption.ReplaceExisting);
+                await FileIO.WriteTextAsync(temporaryFile, System.Text.Json.JsonSerializer.Serialize(tokens));
+                await temporaryFile.MoveAsync(folder, SessionFileName, NameCollisionOption.ReplaceExisting);
             }
             catch
             {
                 // best-effort; never let this interrupt normal tab open/close
+            }
+            finally
+            {
+                Gate.Release();
             }
         }
 
@@ -56,6 +74,8 @@ namespace Slinky.Services
         public static async Task<List<StorageFile>> LoadAndClearAsync()
         {
             var result = new List<StorageFile>();
+
+            await Gate.WaitAsync();
 
             try
             {
@@ -85,10 +105,15 @@ namespace Slinky.Services
                 }
 
                 await sessionFile.DeleteAsync();
+                CurrentTokens.Clear();
             }
             catch
             {
                 // best-effort
+            }
+            finally
+            {
+                Gate.Release();
             }
 
             return result;

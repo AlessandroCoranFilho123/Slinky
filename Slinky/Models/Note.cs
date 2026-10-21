@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
+using Windows.Security.Cryptography;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Slinky; // for App.Window, used by the save picker to know which window to appear over
@@ -57,6 +58,10 @@ namespace Slinky.Models
         }
 
         private string text = string.Empty;
+        public TextEncodingKind EncodingKind { get; private set; } = TextEncodingKind.Utf8;
+        public bool HasBom { get; private set; }
+        public LineEndingKind LineEnding { get; private set; } = LineEndingKind.CrLf;
+
         public string Text
         {
             get => text;
@@ -96,7 +101,14 @@ namespace Slinky.Models
         {
             try
             {
-                Text = await FileIO.ReadTextAsync(fileToOpen);
+                var buffer = await FileIO.ReadBufferAsync(fileToOpen);
+                CryptographicBuffer.CopyToByteArray(buffer, out var bytes);
+                var decoded = TextFileCodec.Decode(bytes);
+                text = decoded.Text;
+                EncodingKind = decoded.Encoding;
+                HasBom = decoded.HasBom;
+                LineEnding = decoded.LineEnding;
+                OnPropertyChanged(nameof(Text));
                 File = fileToOpen;
                 IsDirty = false;
                 LastError = null;
@@ -123,7 +135,7 @@ namespace Slinky.Models
 
             try
             {
-                await FileIO.WriteTextAsync(File, Text);
+                await FileIO.WriteBytesAsync(File, TextFileCodec.Encode(Text, EncodingKind, HasBom, LineEnding));
                 IsDirty = false;
                 LastError = null;
                 await ClearRecoveryAsync();
@@ -159,7 +171,7 @@ namespace Slinky.Models
                     return false; // user cancelled — not an error, LastError stays null
                 }
 
-                await FileIO.WriteTextAsync(chosenFile, Text);
+                await FileIO.WriteBytesAsync(chosenFile, TextFileCodec.Encode(Text, EncodingKind, HasBom, LineEnding));
                 File = chosenFile;
                 IsDirty = false;
                 LastError = null;
@@ -201,6 +213,9 @@ namespace Slinky.Models
             // need StorageFile.GetFileFromPathAsync, which needs broad filesystem access this app
             // doesn't request. "Salvar como" reconnects it to a real file if the user wants that.
             Text = snapshot.Text;
+            EncodingKind = snapshot.Encoding;
+            HasBom = snapshot.HasBom;
+            LineEnding = snapshot.LineEnding;
             IsDirty = true;
         }
 
@@ -237,10 +252,16 @@ namespace Slinky.Models
 
             try
             {
-                var folder = await RecoveryService.GetRecoveryFolderAsync();
-                var snapshotFile = await folder.CreateFileAsync($"{recoveryId}.json", CreationCollisionOption.ReplaceExisting);
-                var snapshot = new RecoverySnapshot { Text = Text, FilePath = File?.Path, SavedAt = DateTime.Now };
-                await FileIO.WriteTextAsync(snapshotFile, JsonSerializer.Serialize(snapshot));
+                var snapshot = new RecoverySnapshot
+                {
+                    Text = Text,
+                    FilePath = File?.Path,
+                    SavedAt = DateTime.Now,
+                    Encoding = EncodingKind,
+                    HasBom = HasBom,
+                    LineEnding = LineEnding
+                };
+                await RecoveryService.SaveSnapshotAsync(recoveryId, snapshot);
             }
             catch
             {
@@ -255,11 +276,7 @@ namespace Slinky.Models
 
             try
             {
-                var folder = await RecoveryService.GetRecoveryFolderAsync();
-                if (await folder.TryGetItemAsync($"{recoveryId}.json") is StorageFile snapshotFile)
-                {
-                    await snapshotFile.DeleteAsync();
-                }
+                await RecoveryService.DeleteSnapshotAsync(recoveryId);
             }
             catch
             {
