@@ -269,7 +269,7 @@ Essa decisão continua pendente.
 
 ## 12. Testes atuais
 
-A suíte `Slinky.Tests` possui 62 testes no estado atual do código-base após a terceira etapa? Durante a quarta etapa, a contagem deve ser confirmada pelo CI após o commit. A suíte cobre:
+A suíte `Slinky.Tests` possui 62 testes no estado atual do código-base. A suíte cobre:
 
 - busca e substituição;
 - contraste e temas;
@@ -328,7 +328,7 @@ O workflow `.github/workflows/tests.yml` agora contém:
 
 ### Trimming
 
-- restore x64 com trimming;
+- restore x64 com trimming parcial;
 - build Release com `PublishTrimmed=true`.
 
 ### Limitações do CI

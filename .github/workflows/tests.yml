@@ -120,9 +120,17 @@ jobs:
       - name: Verificar artefatos MSIX
         shell: pwsh
         run: |
-          $bundle = Get-ChildItem -Path Slinky/AppPackages -Filter *.msixbundle -Recurse -File | Select-Object -First 1
-          $package = Get-ChildItem -Path Slinky/AppPackages -Filter *.msix -Recurse -File | Where-Object { $_.Name -notmatch 'scale-' } | Select-Object -First 1
-          if ($null -eq $bundle -or $null -eq $package) { throw 'MSIX/MSIXBundle não foi gerado.' }
+          $root = (Resolve-Path Slinky).Path
+          $bundle = Get-ChildItem -Path $root -Filter *.msixbundle -Recurse -File |
+            Where-Object { $_.FullName -notmatch '\\obj\\' } |
+            Select-Object -First 1
+          $package = Get-ChildItem -Path $root -Filter *.msix -Recurse -File |
+            Where-Object { $_.Name -notmatch 'scale-' -and $_.FullName -notmatch '\\obj\\' } |
+            Select-Object -First 1
+          if ($null -eq $bundle -or $null -eq $package) {
+            Get-ChildItem -Path $root -Recurse -File | Select-Object -ExpandProperty FullName
+            throw 'MSIX/MSIXBundle não foi gerado em nenhum diretório de saída do projeto.'
+          }
           Write-Host "Bundle: $($bundle.FullName)"
           Write-Host "Package: $($package.FullName)"
 
@@ -130,7 +138,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slinky-msix-x64
-          path: Slinky/AppPackages/**/*.msix*
+          path: Slinky/**/*.msix*
           if-no-files-found: error
 
   install-smoke:
@@ -185,6 +193,7 @@ jobs:
           --property:Platform=x64
           --property:PublishTrimmed=true
           --property:PublishReadyToRun=false
+          --property:TrimMode=partial
 
       - name: Compilar com trimming
         run: >-
@@ -195,3 +204,4 @@ jobs:
           --property:RuntimeIdentifier=win-x64
           --property:PublishTrimmed=true
           --property:PublishReadyToRun=false
+          --property:TrimMode=partial
