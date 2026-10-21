@@ -23,11 +23,17 @@ Requer Windows 10 versão 1809 (build 17763) ou mais recente.
 
 ## Como instalar localmente
 
-No Windows, execute `instalar-slinky.bat` na raiz do repositório. O script restaura as dependências, gera um pacote MSIX self-contained para a arquitetura da máquina, assina-o com um certificado de desenvolvimento local e instala o Slinky para o usuário atual.
+No Windows, execute `instalar-slinky.bat` na raiz do repositório. O script restaura as dependências, gera um pacote MSIX self-contained para a arquitetura da máquina, assina-o com um certificado de desenvolvimento local e instala o Slinky para o usuário atual. Na primeira instalação, o Windows pode solicitar elevação para confiar no certificado de desenvolvimento; isso também é necessário para reinstalações.
 
 Para apenas gerar o pacote sem instalar, execute `instalar-slinky.bat --build-only`. O arquivo será criado em `Slinky/AppPackages`.
 
 O certificado de desenvolvimento é criado ou reutilizado no armazenamento do usuário atual (`CN=Alessandro`) e não é enviado para nenhum lugar. O script usa um certificado compatível com assinatura de pacotes, registra-o em `TrustedPeople` por meio do instalador de desenvolvimento do Windows e pode solicitar confirmação do UAC. Se o Windows bloquear sideloading, habilite o **Modo de Desenvolvedor** em **Configurações → Sistema → Para desenvolvedores**.
+
+Durante a instalação local, o certificado autoassinado também pode ser registrado em
+`TrustedPeople` e `Root` do computador para que o Windows aceite a assinatura do MSIX.
+Esse certificado é apenas de desenvolvimento; não é usado nos pacotes de distribuição.
+Para removê-lo, abra `certmgr.msc` ou o Gerenciador de Certificados do computador e
+remova os certificados `CN=Alessandro` que foram criados para o Slinky.
 
 ## Testes
 

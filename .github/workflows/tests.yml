@@ -104,6 +104,13 @@ jobs:
           --property:PublishReadyToRun=false
           --property:WindowsAppSDKSelfContained=true
 
+      - name: Criar certificado temporário de CI
+        shell: pwsh
+        run: |
+          $certificate = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Slinky CI' -CertStoreLocation 'Cert:\CurrentUser\My' -HashAlgorithm SHA256 -KeyExportPolicy Exportable
+          Export-Certificate -Cert $certificate -FilePath "$env:GITHUB_WORKSPACE\msix-signing.cer" -Type CERT | Out-Null
+          "APPX_CERT_THUMBPRINT=$($certificate.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Gerar MSIX unsigned x64
         run: >-
           dotnet build Slinky/Slinky.csproj
@@ -115,7 +122,8 @@ jobs:
           --property:PublishReadyToRun=false
           --property:PublishTrimmed=false
           --property:WindowsAppSDKSelfContained=true
-          --property:AppxPackageSigningEnabled=false
+          --property:AppxPackageSigningEnabled=true
+          --property:PackageCertificateThumbprint=$env:APPX_CERT_THUMBPRINT
 
       - name: Verificar artefatos MSIX
         shell: pwsh
@@ -138,7 +146,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slinky-msix-x64
-          path: Slinky/**/*.msix*
+          path: |
+            Slinky/**/*.msix*
+            msix-signing.cer
           if-no-files-found: error
 
   install-smoke:
@@ -156,18 +166,21 @@ jobs:
           name: slinky-msix-x64
           path: msix
 
+      - name: Confiar no certificado temporário
+        shell: pwsh
+        run: |
+          $certificate = Get-ChildItem -Path msix -Filter msix-signing.cer -Recurse -File | Select-Object -First 1
+          if ($null -eq $certificate) { throw 'O artefato não contém o certificado de assinatura do CI.' }
+          Import-Certificate -FilePath $certificate.FullName -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
+          Import-Certificate -FilePath $certificate.FullName -CertStoreLocation 'Cert:\LocalMachine\Root' | Out-Null
+
       - name: Instalar pacote MSIX unsigned
         shell: pwsh
         run: |
-          $package = Get-ChildItem -Path msix -Filter *.msix -Recurse -File |
-            Where-Object { $_.Name -notmatch 'scale-' -and $_.Name -match '_x64\.msix$' } |
+          $package = Get-ChildItem -Path msix -Filter *.msixbundle -Recurse -File |
             Select-Object -First 1
-          if ($null -eq $package) { throw 'O artefato MSIX validado não contém o pacote x64.' }
-          $command = Get-Command Add-AppxPackage -ErrorAction Stop
-          if (-not $command.Parameters.ContainsKey('AllowUnsigned')) {
-            throw 'O runner não oferece suporte à instalação de pacote MSIX unsigned.'
-          }
-          Add-AppxPackage -Path $package.FullName -AllowUnsigned -ForceApplicationShutdown -ForceUpdateFromAnyVersion
+          if ($null -eq $package) { throw 'O artefato MSIX validado não contém um MSIXBundle.' }
+          Add-AppxPackage -Path $package.FullName -ForceApplicationShutdown -ForceUpdateFromAnyVersion
           Write-Host "Pacote instalado: $($package.FullName)"
 
       - name: Confirmar pacote instalado
@@ -182,6 +195,9 @@ jobs:
         shell: pwsh
         run: |
           Get-AppxPackage | Where-Object { $_.Name -like '*Slinky*' } | Remove-AppxPackage -ErrorAction SilentlyContinue
+          Get-ChildItem Cert:\LocalMachine\TrustedPeople,Cert:\LocalMachine\Root -ErrorAction SilentlyContinue |
+            Where-Object { $_.Subject -eq 'CN=Slinky CI' } |
+            Remove-Item -Force -ErrorAction SilentlyContinue
 
   trimmed-build:
     name: Build com trimming

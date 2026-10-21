@@ -12,6 +12,8 @@ set "PLATFORM=x64"
 set "RID=win-x64"
 set "BUILD_ONLY=0"
 set "SIGN_PACKAGE=1"
+set "POWERSHELL=%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe"
+set "PSModulePath=%WINDIR%\System32\WindowsPowerShell\v1.0\Modules;%ProgramFiles%\WindowsPowerShell\Modules;%PSModulePath%"
 
 if /I "%PROCESSOR_ARCHITEW6432%"=="ARM64" (
     set "PLATFORM=ARM64"
@@ -66,6 +68,15 @@ if not exist "%PROJECT%" (
     exit /b 1
 )
 
+fltmc >nul 2>&1
+if errorlevel 1 (
+    set "SLINKY_INSTALLER=%~f0"
+    set "SLINKY_ARGS=%*"
+    "%POWERSHELL%" -NoProfile -ExecutionPolicy Bypass -Command "$process = Start-Process -FilePath $env:SLINKY_INSTALLER -ArgumentList $env:SLINKY_ARGS -Verb RunAs -Wait -PassThru; exit $process.ExitCode"
+    set "SLINKY_EXIT=!errorlevel!"
+    exit /b !SLINKY_EXIT!
+)
+
 where.exe dotnet >nul 2>&1
 if errorlevel 1 (
     echo ERRO: o .NET SDK nao foi encontrado no PATH.
@@ -76,8 +87,21 @@ if errorlevel 1 (
 set "DOTNET_CLI_TELEMETRY_OPTOUT=1"
 set "DOTNET_SKIP_FIRST_TIME_EXPERIENCE=1"
 
-if "%SIGN_PACKAGE%"=="1" call :prepare_certificate
-if errorlevel 1 goto failed
+if "%SIGN_PACKAGE%"=="1" (
+    set "CERT_DIR=%TEMP%\SlinkyInstaller-%RANDOM%%RANDOM%"
+    set "CERT_PUBLIC_FILE=!CERT_DIR!\Slinky.cer"
+    set "CERT_THUMBPRINT="
+    if not exist "!CERT_DIR!" md "!CERT_DIR!"
+    set "SLINKY_CERT_DIR=!CERT_DIR!"
+    set "SLINKY_CERT_PUBLIC_FILE=!CERT_PUBLIC_FILE!"
+    "%POWERSHELL%" -NoLogo -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File "%ROOT%scripts\Prepare-DevelopmentCertificate.ps1" -OutputCertificatePath "!CERT_PUBLIC_FILE!" > "!CERT_DIR!\thumbprint.txt"
+    if errorlevel 1 goto failed
+    set /p CERT_THUMBPRINT=<"!CERT_DIR!\thumbprint.txt"
+    if not defined CERT_THUMBPRINT (
+        echo ERRO: nao foi possivel criar o certificado de desenvolvimento.
+        goto failed
+    )
+)
 
 echo.
 echo Slinky - instalacao local
@@ -89,6 +113,16 @@ if errorlevel 1 goto failed
 
 echo.
 echo [2/3] Gerando o pacote MSIX self-contained...
+if exist "%APP_PACKAGES%" rmdir /s /q "%APP_PACKAGES%"
+if exist "%APP_PACKAGES%" (
+    echo ERRO: nao foi possivel limpar os artefatos MSIX anteriores.
+    goto failed
+)
+if exist "%ROOT%Slinky\bin" rmdir /s /q "%ROOT%Slinky\bin"
+if exist "%ROOT%Slinky\bin" (
+    echo ERRO: nao foi possivel limpar os artefatos binarios anteriores.
+    goto failed
+)
 if "%SIGN_PACKAGE%"=="1" (
     dotnet build "%PROJECT%" --configuration %CONFIGURATION% --no-restore --property:Platform=%PLATFORM% --property:RuntimeIdentifier=%RID% --property:GenerateAppxPackageOnBuild=true --property:PublishReadyToRun=false --property:PublishTrimmed=false --property:WindowsAppSDKSelfContained=true --property:AppxPackageSigningEnabled=true --property:PackageCertificateThumbprint=%CERT_THUMBPRINT%
 ) else (
@@ -117,7 +151,13 @@ if "%SIGN_PACKAGE%"=="1" (
     for %%D in ("%PACKAGE%") do set "PACKAGE_DIR=%%~dpD"
     set "INSTALL_SCRIPT=!PACKAGE_DIR!Add-AppDevPackage.ps1"
     if exist "!INSTALL_SCRIPT!" (
-        powershell.exe -NoProfile -ExecutionPolicy Bypass -File "!INSTALL_SCRIPT!" -Force -SkipLoggingTelemetry
+        del /q "!PACKAGE_DIR!*.cer" >nul 2>&1
+        copy /y "%CERT_PUBLIC_FILE%" "!PACKAGE_DIR!Slinky_1.0.0.0_x64.cer" >nul
+        if errorlevel 1 goto failed
+        set "SLINKY_CERT_PUBLIC_FILE=%CERT_PUBLIC_FILE%"
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; foreach($store in @('TrustedPeople','Root')) { $process = Start-Process -FilePath 'certutil.exe' -Verb RunAs -ArgumentList @('-addstore', $store, $env:SLINKY_CERT_PUBLIC_FILE) -Wait -PassThru; if($process.ExitCode -ne 0) { exit $process.ExitCode } }"
+        if errorlevel 1 goto failed
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -File "!INSTALL_SCRIPT!" -Force -SkipLoggingTelemetry -CertificatePath "!PACKAGE_DIR!Slinky_1.0.0.0_x64.cer"
     ) else (
         set "SLINKY_CERT_PUBLIC_FILE=%CERT_PUBLIC_FILE%"
         powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $null = Import-Certificate -FilePath $env:SLINKY_CERT_PUBLIC_FILE -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople'; Add-AppxPackage -Path $env:SLINKY_PACKAGE -ForceApplicationShutdown -ForceUpdateFromAnyVersion"
@@ -160,24 +200,6 @@ exit /b 0
 :help_error
 echo.
 goto help
-
-:prepare_certificate
-set "CERT_DIR=%TEMP%\SlinkyInstaller-%RANDOM%%RANDOM%"
-set "CERT_PUBLIC_FILE=%CERT_DIR%\Slinky.cer"
-set "CERT_THUMBPRINT="
-if not exist "%CERT_DIR%" md "%CERT_DIR%"
-set "SLINKY_CERT_DIR=%CERT_DIR%"
-set "SLINKY_CERT_PUBLIC_FILE=%CERT_PUBLIC_FILE%"
-for /f "usebackq delims=" %%T in (`powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $cert = $null; foreach($candidate in (Get-ChildItem -Path 'Cert:\CurrentUser\My' -ErrorAction SilentlyContinue)){ $valid = $candidate.Subject -eq 'CN=Alessandro' -and $candidate.HasPrivateKey -and $candidate.NotAfter -gt (Get-Date); $basic = $false; $eku = $false; if($valid){foreach($extension in $candidate.Extensions){if($extension.Oid.Value -eq '2.5.29.19'){$basic = $true; if($extension.CertificateAuthority){$valid = $false}} elseif($extension.Oid.Value -eq '2.5.29.15' -and $extension.KeyUsages -ne 'DigitalSignature'){$valid = $false} elseif($extension.Oid.Value -eq '2.5.29.37'){$ekus = $extension.EnhancedKeyUsages.Value; if($ekus -contains '1.3.6.1.5.5.7.3.3'){$eku = $true} else {$valid = $false}; foreach($ekuItem in $ekus){if($ekuItem -ne '1.3.6.1.5.5.7.3.3' -and $ekuItem -ne '1.3.6.1.4.1.311.10.3.13' -and $ekuItem -ne '1.3.6.1.4.1.311.84.3.1' -and $ekuItem -ne '1.3.6.1.4.1.311.84.3.2'){$valid = $false}}}}}; if($valid -and $basic -and $eku -and $null -eq $cert){$cert = $candidate}}; if($null -eq $cert){$cert = New-SelfSignedCertificate -Type Custom -KeyUsage DigitalSignature -Subject 'CN=Alessandro' -FriendlyName 'Slinky Development Certificate' -CertStoreLocation 'Cert:\CurrentUser\My' -HashAlgorithm SHA256 -KeyExportPolicy Exportable -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}')}; $null = Export-Certificate -Cert $cert -FilePath $env:SLINKY_CERT_PUBLIC_FILE; $cert.Thumbprint"`) do set "CERT_THUMBPRINT=%%T"
-if errorlevel 1 (
-    echo ERRO: nao foi possivel criar o certificado de desenvolvimento.
-    exit /b 1
-)
-if not defined CERT_THUMBPRINT (
-    echo ERRO: o certificado foi criado, mas o thumbprint nao foi encontrado.
-    exit /b 1
-)
-exit /b 0
 
 :cleanup_certificate
 if "%SIGN_PACKAGE%"=="1" if defined CERT_DIR powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -LiteralPath $env:SLINKY_CERT_DIR -Recurse -Force -ErrorAction SilentlyContinue"
