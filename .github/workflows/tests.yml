@@ -37,3 +37,161 @@ jobs:
           --runtime win-x64
           --property:PublishReadyToRun=false
           --property:PublishTrimmed=false
+
+  architecture-build:
+    name: Build ${{ matrix.platform }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: x86
+            rid: win-x86
+          - platform: x64
+            rid: win-x64
+          - platform: ARM64
+            rid: win-arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restaurar ${{ matrix.platform }}
+        run: >-
+          dotnet restore Slinky/Slinky.csproj
+          --runtime ${{ matrix.rid }}
+          --property:Platform=${{ matrix.platform }}
+          --property:PublishTrimmed=false
+          --property:PublishReadyToRun=false
+          --property:WindowsAppSDKSelfContained=true
+
+      - name: Compilar ${{ matrix.platform }}
+        run: >-
+          dotnet build Slinky/Slinky.csproj
+          --configuration Release
+          --no-restore
+          --property:Platform=${{ matrix.platform }}
+          --property:RuntimeIdentifier=${{ matrix.rid }}
+          --property:PublishReadyToRun=false
+          --property:PublishTrimmed=false
+          --property:WindowsAppSDKSelfContained=true
+
+  msix:
+    name: MSIX x64
+    runs-on: windows-latest
+    needs: [test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restaurar pacote x64
+        run: >-
+          dotnet restore Slinky/Slinky.csproj
+          --runtime win-x64
+          --property:Platform=x64
+          --property:PublishTrimmed=false
+          --property:PublishReadyToRun=false
+          --property:WindowsAppSDKSelfContained=true
+
+      - name: Gerar MSIX unsigned x64
+        run: >-
+          dotnet build Slinky/Slinky.csproj
+          --configuration Release
+          --no-restore
+          --property:Platform=x64
+          --property:RuntimeIdentifier=win-x64
+          --property:GenerateAppxPackageOnBuild=true
+          --property:PublishReadyToRun=false
+          --property:PublishTrimmed=false
+          --property:WindowsAppSDKSelfContained=true
+          --property:AppxPackageSigningEnabled=false
+
+      - name: Verificar artefatos MSIX
+        shell: pwsh
+        run: |
+          $bundle = Get-ChildItem -Path Slinky/AppPackages -Filter *.msixbundle -Recurse -File | Select-Object -First 1
+          $package = Get-ChildItem -Path Slinky/AppPackages -Filter *.msix -Recurse -File | Where-Object { $_.Name -notmatch 'scale-' } | Select-Object -First 1
+          if ($null -eq $bundle -or $null -eq $package) { throw 'MSIX/MSIXBundle não foi gerado.' }
+          Write-Host "Bundle: $($bundle.FullName)"
+          Write-Host "Package: $($package.FullName)"
+
+      - name: Publicar MSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: slinky-msix-x64
+          path: Slinky/AppPackages/**/*.msix*
+          if-no-files-found: error
+
+  install-smoke:
+    name: Instalação MSIX
+    runs-on: windows-latest
+    needs: [msix]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Instalar pacote pelo instalador do projeto
+        shell: cmd
+        run: instalar-slinky.bat --x64
+
+      - name: Confirmar pacote instalado
+        shell: pwsh
+        run: |
+          $installed = Get-AppxPackage | Where-Object { $_.Name -like '*Slinky*' }
+          if ($null -eq $installed) { throw 'O pacote Slinky não foi encontrado após a instalação.' }
+          $installed | Format-List Name, Version, Architecture
+
+      - name: Remover pacote de smoke test
+        if: always()
+        shell: pwsh
+        run: |
+          Get-AppxPackage | Where-Object { $_.Name -like '*Slinky*' } | Remove-AppxPackage -ErrorAction SilentlyContinue
+
+  trimmed-build:
+    name: Build com trimming
+    runs-on: windows-latest
+    needs: [test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restaurar x64 para trimming
+        run: >-
+          dotnet restore Slinky/Slinky.csproj
+          --runtime win-x64
+          --property:Platform=x64
+          --property:PublishTrimmed=true
+          --property:PublishReadyToRun=false
+
+      - name: Compilar com trimming
+        run: >-
+          dotnet build Slinky/Slinky.csproj
+          --configuration Release
+          --no-restore
+          --property:Platform=x64
+          --property:RuntimeIdentifier=win-x64
+          --property:PublishTrimmed=true
+          --property:PublishReadyToRun=false

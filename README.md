@@ -33,6 +33,11 @@ O certificado de desenvolvimento é criado ou reutilizado no armazenamento do us
 
 Os testes automatizados (`Slinky.Tests`, xUnit) cobrem busca/substituição, contraste WCAG, estados de abas, transições entre temas e leitura/escrita de texto com diferentes codificações e finais de linha. O workflow do GitHub Actions executa os testes e também compila o aplicativo WinUI x64 em Release.
 
+O CI também valida builds x86, x64 e ARM64, gera e inspeciona o MSIX x64, executa
+um smoke test de instalação do pacote e compila o aplicativo com trimming habilitado.
+Testes visuais de interação ainda dependem de uma infraestrutura UI específica do
+Windows e permanecem listados como trabalho futuro.
+
 ### Persistência de documentos
 
 O editor mantém o texto internamente com finais de linha `LF`. Ao abrir um arquivo,
@@ -61,6 +66,9 @@ visual das abas sem voltar ao azul/branco ou preto/branco padrão do sistema.
 O `Package.appxmanifest` pede a capability `runFullTrust`. Isso é esperado: é o que permite empacotar um app Win32/desktop (não-UWP) como MSIX. Não concede nada além do que um `.exe` comum já teria fora de um pacote.
 
 ## Contribuições
+
+Para a auditoria completa da arquitetura, decisões pendentes, testes, CI e histórico
+de implementação, consulte [`docs/AUDITORIA-ARQUITETURA-E-PLANO.md`](docs/AUDITORIA-ARQUITETURA-E-PLANO.md).
 
 Este é um projeto pessoal — código aberto para leitura e uso, mas **não estou aceitando pull requests** no momento. Issues relatando bugs são bem-vindas, só não esperem PR de correção sendo aceito.
 
