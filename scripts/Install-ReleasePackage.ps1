@@ -1,10 +1,17 @@
 [CmdletBinding()]
 param(
-    [string]$PackagePath = (Join-Path $PSScriptRoot '..\Slinky-v1.0.1-x64.msixbundle'),
-    [string]$CertificatePath = (Join-Path $PSScriptRoot '..\Slinky-Development.cer')
+    [string]$PackagePath,
+    [string]$CertificatePath
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($PackagePath)) {
+    $PackagePath = Join-Path $PSScriptRoot 'Slinky-v1.0.2-x64.msixbundle'
+}
+if ([string]::IsNullOrWhiteSpace($CertificatePath)) {
+    $CertificatePath = Join-Path $PSScriptRoot 'Slinky-Development.cer'
+}
 $windowsPowerShell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 
