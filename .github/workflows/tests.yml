@@ -194,10 +194,12 @@ jobs:
           --property:PublishTrimmed=true
           --property:PublishReadyToRun=false
           --property:TrimMode=partial
+          --property:SelfContained=true
+          --property:WindowsAppSDKSelfContained=true
 
       - name: Compilar com trimming
         run: >-
-          dotnet build Slinky/Slinky.csproj
+          dotnet publish Slinky/Slinky.csproj
           --configuration Release
           --no-restore
           --property:Platform=x64
@@ -205,3 +207,5 @@ jobs:
           --property:PublishTrimmed=true
           --property:PublishReadyToRun=false
           --property:TrimMode=partial
+          --property:SelfContained=true
+          --property:WindowsAppSDKSelfContained=true
