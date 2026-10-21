@@ -33,6 +33,9 @@
     <Compile Include="..\Slinky\TextSearch.cs" Link="Linked\TextSearch.cs" />
     <Compile Include="..\Slinky\EditorTapRouting.cs" Link="Linked\EditorTapRouting.cs" />
     <Compile Include="..\Slinky\TextFileCodec.cs" Link="Linked\TextFileCodec.cs" />
+    <Compile Include="..\Slinky\SessionStateCodec.cs" Link="Linked\SessionStateCodec.cs" />
+    <Compile Include="..\Slinky\RecoverySnapshot.cs" Link="Linked\RecoverySnapshot.cs" />
+    <Compile Include="..\Slinky\RecoveryLifecycle.cs" Link="Linked\RecoveryLifecycle.cs" />
   </ItemGroup>
 
 </Project>

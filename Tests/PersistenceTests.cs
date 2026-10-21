@@ -1,0 +1,79 @@
+using System.Text;
+using Slinky;
+using Xunit;
+
+namespace Slinky.Tests;
+
+public sealed class PersistenceTests
+{
+    [Fact]
+    public void DocumentRoundTrip_UsesRealTemporaryFileAndPreservesMetadata()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"slinky-{Guid.NewGuid():N}.txt");
+        try
+        {
+            var bytes = TextFileCodec.Encode("ação\nsegunda linha", TextEncodingKind.Utf8, true, LineEndingKind.CrLf);
+            File.WriteAllBytes(path, bytes);
+
+            var decoded = TextFileCodec.Decode(File.ReadAllBytes(path));
+
+            Assert.Equal("ação\nsegunda linha", decoded.Text);
+            Assert.Equal(TextEncodingKind.Utf8, decoded.Encoding);
+            Assert.True(decoded.HasBom);
+            Assert.Equal(LineEndingKind.CrLf, decoded.LineEnding);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void SessionStateCodec_DeduplicatesTokensAndRejectsCorruptJson()
+    {
+        var json = SessionStateCodec.Serialize(new[] { "a", "a", "b", "" });
+
+        Assert.True(SessionStateCodec.TryDeserialize(json, out var tokens));
+        Assert.Equal(new[] { "a", "b" }, tokens);
+        Assert.False(SessionStateCodec.TryDeserialize("{broken", out _));
+    }
+
+    [Fact]
+    public void RecoverySnapshotCodec_RoundTripsAndRejectsCorruptJson()
+    {
+        var snapshot = new RecoverySnapshot
+        {
+            Text = "linha 1\nlinha 2",
+            FilePath = "C:\\temp\\arquivo.txt",
+            SavedAt = DateTime.UtcNow,
+            Encoding = TextEncodingKind.Windows1252,
+            HasBom = false,
+            LineEnding = LineEndingKind.Lf
+        };
+
+        var json = RecoverySnapshotCodec.Serialize(snapshot);
+
+        Assert.True(RecoverySnapshotCodec.TryDeserialize(json, out var restored));
+        Assert.NotNull(restored);
+        Assert.Equal(snapshot.Text, restored!.Text);
+        Assert.Equal(snapshot.FilePath, restored.FilePath);
+        Assert.Equal(snapshot.Encoding, restored.Encoding);
+        Assert.Equal(snapshot.LineEnding, restored.LineEnding);
+        Assert.False(RecoverySnapshotCodec.TryDeserialize("not-json", out _));
+    }
+
+    [Fact]
+    public void RecoveryLifecycle_AllowsWritesUntilCloseAndThenBlocksThem()
+    {
+        var lifecycle = new RecoveryLifecycle();
+
+        Assert.True(lifecycle.CanSchedule);
+        Assert.True(lifecycle.TryBeginWrite());
+
+        lifecycle.Close();
+
+        Assert.True(lifecycle.IsClosed);
+        Assert.False(lifecycle.CanSchedule);
+        Assert.False(lifecycle.TryBeginWrite());
+    }
+}

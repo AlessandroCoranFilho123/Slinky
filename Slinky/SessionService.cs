@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
+using Slinky;
 using System;
 
 namespace Slinky.Services
@@ -54,7 +55,7 @@ namespace Slinky.Services
 
                 var folder = ApplicationData.Current.LocalFolder;
                 var temporaryFile = await folder.CreateFileAsync(TemporarySessionFileName, CreationCollisionOption.ReplaceExisting);
-                await FileIO.WriteTextAsync(temporaryFile, System.Text.Json.JsonSerializer.Serialize(tokens));
+                await FileIO.WriteTextAsync(temporaryFile, SessionStateCodec.Serialize(tokens));
                 await temporaryFile.MoveAsync(folder, SessionFileName, NameCollisionOption.ReplaceExisting);
             }
             catch
@@ -86,7 +87,11 @@ namespace Slinky.Services
                 }
 
                 var json = await FileIO.ReadTextAsync(sessionFile);
-                var tokens = System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+                if (!SessionStateCodec.TryDeserialize(json, out var tokens))
+                {
+                    await sessionFile.DeleteAsync();
+                    return result;
+                }
 
                 foreach (var token in tokens)
                 {

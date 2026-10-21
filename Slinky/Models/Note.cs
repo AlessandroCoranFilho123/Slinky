@@ -38,7 +38,7 @@ namespace Slinky.Models
 
         private readonly Guid recoveryId = Guid.NewGuid();
         private DispatcherTimer? autosaveTimer;
-        private bool recoveryClosed;
+        private readonly RecoveryLifecycle recoveryLifecycle = new();
 
         private StorageFile? file;
         public StorageFile? File
@@ -225,7 +225,7 @@ namespace Slinky.Models
         {
             try
             {
-                if (recoveryClosed)
+                if (!recoveryLifecycle.CanSchedule)
                 {
                     return;
                 }
@@ -251,14 +251,14 @@ namespace Slinky.Models
         {
             autosaveTimer?.Stop();
 
-            if (recoveryClosed || !IsDirty)
+            if (!recoveryLifecycle.CanSchedule || !IsDirty)
             {
                 return;
             }
 
             try
             {
-                if (recoveryClosed || !IsDirty)
+                if (!recoveryLifecycle.TryBeginWrite() || !IsDirty)
                 {
                     return;
                 }
@@ -285,7 +285,7 @@ namespace Slinky.Models
         {
             if (closeNote)
             {
-                recoveryClosed = true;
+                recoveryLifecycle.Close();
             }
 
             autosaveTimer?.Stop();
