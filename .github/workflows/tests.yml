@@ -150,14 +150,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Instalar .NET 8
-        uses: actions/setup-dotnet@v4
+      - name: Baixar MSIX validado
+        uses: actions/download-artifact@v4
         with:
-          dotnet-version: '8.0.x'
+          name: slinky-msix-x64
+          path: msix
 
-      - name: Instalar pacote pelo instalador do projeto
-        shell: cmd
-        run: instalar-slinky.bat --x64
+      - name: Instalar pacote MSIX unsigned
+        shell: pwsh
+        run: |
+          $bundle = Get-ChildItem -Path msix -Filter *.msixbundle -Recurse -File | Select-Object -First 1
+          if ($null -eq $bundle) { throw 'O artefato MSIX validado não contém um MSIXBundle.' }
+          $command = Get-Command Add-AppxPackage -ErrorAction Stop
+          if (-not $command.Parameters.ContainsKey('AllowUnsigned')) {
+            throw 'O runner não oferece suporte à instalação de pacote MSIX unsigned.'
+          }
+          Add-AppxPackage -Path $bundle.FullName -AllowUnsigned -ForceApplicationShutdown -ForceUpdateFromAnyVersion
+          Write-Host "Pacote instalado: $($bundle.FullName)"
 
       - name: Confirmar pacote instalado
         shell: pwsh
