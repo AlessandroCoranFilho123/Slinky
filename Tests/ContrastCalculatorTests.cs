@@ -48,5 +48,41 @@ namespace Slinky.Tests
             // WCAG 2.x AA minimum for normal-size text.
             Assert.True(ratio >= 4.5, $"{theme} only reaches {ratio:F2}:1 (needs >= 4.5:1)");
         }
+
+        [Theory]
+        [InlineData(AppTheme.LightDefault)]
+        [InlineData(AppTheme.LightYellowish)]
+        [InlineData(AppTheme.DarkDefault)]
+        [InlineData(AppTheme.DarkBluish)]
+        [InlineData(AppTheme.DarkDracula)]
+        public void SecondaryTextAtConfiguredOpacity_MeetsWcagAa(AppTheme theme)
+        {
+            var background = ThemePalette.Background(theme);
+            var effectiveForeground = ContrastCalculator.CompositeOver(
+                ThemePalette.Foreground(theme), background, opacity: 0.8);
+
+            var ratio = ContrastCalculator.ContrastRatio(background, effectiveForeground);
+
+            Assert.True(ratio >= 4.5, $"{theme} only reaches {ratio:F2}:1 at opacity 0.8");
+        }
+
+        [Theory]
+        [InlineData(AppTheme.LightDefault)]
+        [InlineData(AppTheme.LightYellowish)]
+        [InlineData(AppTheme.DarkDefault)]
+        [InlineData(AppTheme.DarkBluish)]
+        [InlineData(AppTheme.DarkDracula)]
+        public void SurfaceTextAndAccentMeetApplicableContrast(AppTheme theme)
+        {
+            var background = ThemePalette.Background(theme);
+            var foreground = ThemePalette.Foreground(theme);
+            var surface = ThemePalette.Surface(theme);
+            var accent = ThemePalette.Accent(theme);
+
+            Assert.True(ContrastCalculator.ContrastRatio(surface, foreground) >= 4.5,
+                $"{theme} surface text is below 4.5:1");
+            Assert.True(ContrastCalculator.ContrastRatio(background, accent) >= 3.0,
+                $"{theme} accent is below 3:1 for a UI component");
+        }
     }
 }

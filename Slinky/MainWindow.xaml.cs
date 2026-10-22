@@ -296,6 +296,7 @@ namespace Slinky
             }
 
             AddNoteTab(note);
+            await RefreshRecentFilesMenuAsync();
         }
 
         // ----- Tab management -----------------------------------------------------
@@ -514,12 +515,26 @@ namespace Slinky
 
         private void NovaAbaMenuItem_Click(object sender, RoutedEventArgs e) => AddNoteTab(new Note());
 
-        private void NovaJanelaMenuItem_Click(object sender, RoutedEventArgs e)
+        private async void NovaJanelaMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var exePath = Environment.ProcessPath;
-            if (!string.IsNullOrEmpty(exePath))
+            try
             {
-                System.Diagnostics.Process.Start(exePath);
+                var exePath = Environment.ProcessPath;
+                if (string.IsNullOrEmpty(exePath))
+                {
+                    await ShowInfoDialogAsync("Nova janela", "O caminho do aplicativo não está disponível.");
+                    return;
+                }
+
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = exePath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                await ShowInfoDialogAsync("Não foi possível abrir uma nova janela", ex.Message);
             }
         }
 
@@ -530,7 +545,7 @@ namespace Slinky
             WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
 
             picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
-            picker.FileTypeFilter.Add(".txt");
+            picker.FileTypeFilter.Add("*");
 
             var file = await picker.PickSingleFileAsync();
             if (file is null)
@@ -545,6 +560,7 @@ namespace Slinky
                 return;
             }
             AddNoteTab(note);
+            await RefreshRecentFilesMenuAsync();
         }
 
         private async void SalvarMenuItem_Click(object sender, RoutedEventArgs e)
@@ -552,6 +568,7 @@ namespace Slinky
             if (GetActiveNotePage() is NotePage page)
             {
                 await page.SaveAsync();
+                await RefreshRecentFilesMenuAsync();
             }
         }
 
@@ -560,6 +577,7 @@ namespace Slinky
             if (GetActiveNotePage() is NotePage page)
             {
                 await page.SaveAsAsync();
+                await RefreshRecentFilesMenuAsync();
             }
         }
 
@@ -625,7 +643,39 @@ namespace Slinky
         private void SalvarAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
         {
             args.Handled = true;
+            if (closePromptOpen)
+            {
+                return;
+            }
             SalvarMenuItem_Click(this, new RoutedEventArgs());
+        }
+
+        private void SalvarComoAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            args.Handled = true;
+            if (closePromptOpen)
+            {
+                return;
+            }
+            SalvarComoMenuItem_Click(this, new RoutedEventArgs());
+        }
+
+        private async void FecharAbaAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            args.Handled = true;
+            if (closePromptOpen || NotesTabView.SelectedItem is not TabViewItem { Tag: Note note })
+            {
+                return;
+            }
+
+            if (await ConfirmCloseNoteAsync(note))
+            {
+                RemoveTab(note);
+                if (NotesTabView.TabItems.Count == 0)
+                {
+                    AddNoteTab(new Note());
+                }
+            }
         }
 
         private void FindAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)

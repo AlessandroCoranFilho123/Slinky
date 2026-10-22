@@ -78,7 +78,10 @@ namespace Slinky.Services
                     var json = await FileIO.ReadTextAsync(file);
                     if (RecoverySnapshotCodec.TryDeserialize(json, out var snapshot) && snapshot is not null)
                     {
-                        results.Add((file, snapshot));
+                        if (!IsOwnedByLiveProcess(snapshot.OwnerProcessId))
+                        {
+                            results.Add((file, snapshot));
+                        }
                     }
                 }
                 catch
@@ -88,6 +91,31 @@ namespace Slinky.Services
             }
 
             return results;
+        }
+
+        private static bool IsOwnedByLiveProcess(int processId)
+        {
+            if (processId <= 0)
+            {
+                return false;
+            }
+
+            if (processId == Environment.ProcessId)
+            {
+                // Startup runs before this process has produced a new snapshot; treat
+                // a reused PID as stale rather than hiding recoverable content.
+                return false;
+            }
+
+            try
+            {
+                using var process = System.Diagnostics.Process.GetProcessById(processId);
+                return !process.HasExited;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

@@ -30,5 +30,25 @@ namespace Slinky.Services
             double darker = Math.Min(la, lb);
             return (lighter + 0.05) / (darker + 0.05);
         }
+
+        /// <summary>
+        /// Returns the opaque RGB color produced when a foreground with the supplied
+        /// opacity is composited over a background. WCAG must be checked against this
+        /// effective color, not against the unblended foreground.
+        /// </summary>
+        public static (byte R, byte G, byte B) CompositeOver(
+            (byte R, byte G, byte B) foreground,
+            (byte R, byte G, byte B) background,
+            double opacity)
+        {
+            opacity = Math.Clamp(opacity, 0, 1);
+            return (
+                Blend(foreground.R, background.R, opacity),
+                Blend(foreground.G, background.G, opacity),
+                Blend(foreground.B, background.B, opacity));
+        }
+
+        private static byte Blend(byte foreground, byte background, double opacity)
+            => (byte)Math.Clamp(Math.Round(foreground * opacity + background * (1 - opacity)), 0, 255);
     }
 }

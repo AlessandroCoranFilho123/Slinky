@@ -185,6 +185,10 @@ Foi extraída a política pura `RecentFileListPolicy`, cobrindo:
 - limite de dez itens;
 - remoção dos tokens descartados do MRU.
 
+A persistência agora usa o mesmo `SemaphoreSlim` para leitura, alteração e gravação.
+Isso impede que duas aberturas simultâneas leiam a mesma lista antiga e percam uma entrada.
+O menu de recentes é atualizado depois que a operação de abertura/salvamento termina.
+
 A persistência JSON dos recentes agora usa arquivo temporário e substituição atômica.
 
 ## 8. Busca e substituição
@@ -243,7 +247,13 @@ O código original executa outro processo em “Nova janela” usando `Process.S
 
 Também há dependência de `App.Window` em FilePicker e APIs relacionadas à janela.
 
-Essa parte não foi alterada porque exige decisão arquitetural:
+A persistência foi isolada por processo. A sessão agora usa `session-{PID}.json` e só
+consome arquivos cujo processo dono não está vivo. Snapshots de recovery carregam
+`OwnerProcessId` e seguem a mesma regra. Assim, “Nova janela” continua sendo um novo
+processo, mas uma janela não apaga a sessão ou o recovery de outra que ainda está aberta.
+
+O lançamento de uma nova janela também captura falhas de `Process.Start` e as apresenta
+ao usuário.
 
 ### Opção recomendada: várias janelas no mesmo processo
 
@@ -256,20 +266,15 @@ Exigiria:
 - recovery coordenado por aplicação;
 - fechamento independente por janela.
 
-### Opção alternativa: uma janela por processo
-
-É o comportamento atual, mas exige documentar que:
-
-- processos podem concorrer na sessão;
-- processos podem concorrer no recovery;
-- o tema não é um estado realmente compartilhado;
-- múltiplas instâncias podem sobrescrever persistência.
+O comportamento atual continua sendo uma janela por processo. O tema permanece um estado
+compartilhado apenas dentro do processo; sessão e recovery deixaram de compartilhar um
+arquivo ativo entre processos.
 
 Essa decisão continua pendente.
 
 ## 12. Testes atuais
 
-A suíte `Slinky.Tests` possui 62 testes no estado atual do código-base. A suíte cobre:
+A suíte `Slinky.Tests` possui 72 testes no estado atual do código-base. A suíte cobre:
 
 - busca e substituição;
 - contraste e temas;
@@ -284,6 +289,7 @@ A suíte `Slinky.Tests` possui 62 testes no estado atual do código-base. A suí
 - JSON corrompido;
 - ciclo de vida do recovery;
 - política de arquivos recentes;
+- contraste de texto secundário, superfície e indicador de foco;
 - paginação de impressão.
 
 Ainda não existem testes reais de:
@@ -373,7 +379,7 @@ O script `instalar-slinky.bat`:
 4. Definir suporte oficial a Windows-1252 ou se ele deve ser apenas fallback.
 5. Definir se desfazer até o conteúdo salvo limpa `IsDirty`.
 6. Definir infraestrutura de testes UI Windows.
-7. Definir se trimming deve ser usado no pacote de produção, pois o instalador atual o desabilita deliberadamente.
+7. O pacote de produção permanece sem trimming enquanto os codecs JSON forem reflexivos; o build trimmed fica apenas como diagnóstico.
 8. Fixar o SDK por `global.json` para evitar builds com SDK preview.
 
 ## 16. Status consolidado das oito áreas originais
@@ -382,7 +388,7 @@ O script `instalar-slinky.bat`:
 |---|---|
 | Finais de linha e codificação | Implementada na camada de documento e testada |
 | Restauração de sessão | Implementada com deduplicação, ordem e aba vazia corrigida |
-| Múltiplas instâncias/janelas | Pendente de decisão arquitetural |
+| Múltiplas instâncias/janelas | Isolamento por PID implementado; teste multi-processo real ainda pendente |
 | Busca e substituição | Implementada e com testes puros; UI ainda sem automação |
 | Recovery não salvo | Implementado com atomicidade e lifecycle; integração completa ainda pendente |
 | Impressão | Paginação corrigida e testada; preview nativo ainda sem teste |

@@ -5,7 +5,7 @@ Um editor de texto leve para Windows, feito com WinUI 3. Nasceu da vontade de te
 ## Funcionalidades
 
 - Abas — várias notas na mesma janela.
-- `.txt` nativo, com uma superfície de edição simples e rápida.
+- Documentos de texto (`.txt`, `.log`, `.ini`, `.json`, `.csv` e `.md`), com uma superfície de edição simples e rápida.
 - 5 temas (Claro Padrão/Amarelado, Escuro Padrão/Azulado/Dracula), todos com contraste WCAG AA verificado.
 - Localizar / Localizar e substituir.
 - Impressão com margens, orientação e escala configuráveis.
@@ -19,7 +19,10 @@ Um editor de texto leve para Windows, feito com WinUI 3. Nasceu da vontade de te
 3. Se o restore de pacotes reclamar não encontrando `Microsoft.WindowsAppSDK` ou `Microsoft.Windows.SDK.NET.Ref`, adicione o NuGet.org como fonte em **Ferramentas → Opções → Gerenciador de Pacotes NuGet → Fontes de Pacotes** (`https://api.nuget.org/v3/index.json`), caso ainda não esteja lá.
 4. Abra `Slinky.slnx` e rode com F5.
 
-Requer Windows 10 versão 1809 (build 17763) ou mais recente.
+Requer Windows 10 versão 1809 (build 17763) ou mais recente e Visual Studio
+17.13 ou mais recente, com o workload de WinUI instalado. O perfil suportado é
+o empacotado (`Slinky (Package)`); o perfil sem pacote foi removido porque a
+persistência usa APIs de armazenamento com identidade de pacote.
 
 ## Como instalar localmente
 
@@ -45,6 +48,10 @@ O CI também valida builds x86, x64 e ARM64, gera e inspeciona o MSIX x64, execu
 um smoke test de instalação do pacote e compila o aplicativo com trimming habilitado.
 Testes visuais de interação ainda dependem de uma infraestrutura UI específica do
 Windows e permanecem listados como trabalho futuro.
+
+O pacote de produção permanece sem trimming deliberadamente: os codecs de sessão,
+recovery e arquivos recentes ainda usam `System.Text.Json` reflexivo. O build
+trimmed continua disponível na CI como diagnóstico, não como artefato de release.
 
 ### Persistência de documentos
 

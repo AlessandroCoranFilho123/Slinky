@@ -43,6 +43,7 @@ public sealed class PersistenceTests
     {
         var snapshot = new RecoverySnapshot
         {
+            OwnerProcessId = 1234,
             Text = "linha 1\nlinha 2",
             FilePath = "C:\\temp\\arquivo.txt",
             SavedAt = DateTime.UtcNow,
@@ -56,6 +57,7 @@ public sealed class PersistenceTests
         Assert.True(RecoverySnapshotCodec.TryDeserialize(json, out var restored));
         Assert.NotNull(restored);
         Assert.Equal(snapshot.Text, restored!.Text);
+        Assert.Equal(snapshot.OwnerProcessId, restored.OwnerProcessId);
         Assert.Equal(snapshot.FilePath, restored.FilePath);
         Assert.Equal(snapshot.Encoding, restored.Encoding);
         Assert.Equal(snapshot.LineEnding, restored.LineEnding);

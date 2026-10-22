@@ -39,6 +39,9 @@ namespace Slinky.Models
         private readonly Guid recoveryId = Guid.NewGuid();
         private DispatcherTimer? autosaveTimer;
         private readonly RecoveryLifecycle recoveryLifecycle = new();
+        private DateTime? autosavePendingSince;
+        private static readonly TimeSpan AutosaveDebounce = TimeSpan.FromSeconds(2);
+        private static readonly TimeSpan AutosaveMaximumDelay = TimeSpan.FromSeconds(30);
 
         private StorageFile? file;
         public StorageFile? File
@@ -51,10 +54,6 @@ namespace Slinky.Models
                 OnPropertyChanged(nameof(DisplayName));
                 OnPropertyChanged(nameof(PathDisplay));
 
-                if (value is not null)
-                {
-                    _ = RecentFilesService.AddAsync(value);
-                }
             }
         }
 
@@ -68,6 +67,10 @@ namespace Slinky.Models
             get => text;
             set
             {
+                // WinUI TextBox can report CR-only line breaks after editing. Keep the
+                // document invariant independent of the control implementation; the
+                // original on-disk style remains in LineEnding for the next save.
+                value = TextFileCodec.NormalizeLineEndings(value ?? string.Empty, out _);
                 if (text == value) return;
                 text = value;
                 IsDirty = true;
@@ -113,6 +116,7 @@ namespace Slinky.Models
                 File = fileToOpen;
                 IsDirty = false;
                 LastError = null;
+                await RecentFilesService.AddAsync(fileToOpen);
                 return true;
             }
             catch (Exception ex)
@@ -139,6 +143,7 @@ namespace Slinky.Models
                 await FileIO.WriteBytesAsync(File, TextFileCodec.Encode(Text, EncodingKind, HasBom, LineEnding));
                 IsDirty = false;
                 LastError = null;
+                await RecentFilesService.AddAsync(File);
                 await ClearRecoveryAsync(closeNote: false);
                 return true;
             }
@@ -161,7 +166,10 @@ namespace Slinky.Models
                 WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hwnd);
 
                 savePicker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
-                savePicker.FileTypeChoices.Add("Documento de texto", new List<string> { ".txt" });
+                savePicker.FileTypeChoices.Add("Documento de texto", new List<string>
+                {
+                    ".txt", ".log", ".ini", ".json", ".csv", ".md"
+                });
                 savePicker.SuggestedFileName = File is not null
                     ? System.IO.Path.GetFileNameWithoutExtension(File.Name)
                     : "Nova nota";
@@ -173,6 +181,7 @@ namespace Slinky.Models
                 }
 
                 await FileIO.WriteBytesAsync(chosenFile, TextFileCodec.Encode(Text, EncodingKind, HasBom, LineEnding));
+                await RecentFilesService.AddAsync(chosenFile);
                 File = chosenFile;
                 IsDirty = false;
                 LastError = null;
@@ -230,12 +239,18 @@ namespace Slinky.Models
                     return;
                 }
 
+                autosavePendingSince ??= DateTime.UtcNow;
+
                 if (autosaveTimer is null)
                 {
-                    autosaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+                    autosaveTimer = new DispatcherTimer();
                     autosaveTimer.Tick += AutosaveTimer_Tick;
                 }
 
+                var remaining = AutosaveMaximumDelay - (DateTime.UtcNow - autosavePendingSince.Value);
+                autosaveTimer.Interval = remaining <= TimeSpan.Zero
+                    ? TimeSpan.FromMilliseconds(1)
+                    : remaining < AutosaveDebounce ? remaining : AutosaveDebounce;
                 autosaveTimer.Stop();
                 autosaveTimer.Start();
             }
@@ -265,6 +280,7 @@ namespace Slinky.Models
 
                 var snapshot = new RecoverySnapshot
                 {
+                    OwnerProcessId = Environment.ProcessId,
                     Text = Text,
                     FilePath = File?.Path,
                     SavedAt = DateTime.Now,
@@ -273,6 +289,7 @@ namespace Slinky.Models
                     LineEnding = LineEnding
                 };
                 await RecoveryService.SaveSnapshotAsync(recoveryId, snapshot);
+                autosavePendingSince = null;
             }
             catch
             {
@@ -289,6 +306,7 @@ namespace Slinky.Models
             }
 
             autosaveTimer?.Stop();
+            autosavePendingSince = null;
 
             try
             {

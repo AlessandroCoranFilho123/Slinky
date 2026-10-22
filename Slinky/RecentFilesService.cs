@@ -28,36 +28,81 @@ namespace Slinky.Services
         private const string SettingsFileName = "recent-files.json";
         private const string TemporarySettingsFileName = "recent-files.json.tmp";
         private const int MaxEntries = 10;
-        private static readonly SemaphoreSlim SaveGate = new(1, 1);
+        // The lock covers the complete read-modify-write transaction. Locking only
+        // SaveAsync still allows two AddAsync calls to read the same old list and then
+        // overwrite one another with different results.
+        private static readonly SemaphoreSlim Gate = new(1, 1);
 
         public static async Task<List<RecentFileEntry>> LoadAsync()
         {
+            await Gate.WaitAsync();
             try
             {
-                var folder = ApplicationData.Current.LocalFolder;
-                if (await folder.TryGetItemAsync(SettingsFileName) is not StorageFile file)
-                {
-                    return new List<RecentFileEntry>();
-                }
-
-                var json = await FileIO.ReadTextAsync(file);
-                return System.Text.Json.JsonSerializer.Deserialize<List<RecentFileEntry>>(json) ?? new List<RecentFileEntry>();
+                return await LoadCoreAsync();
             }
             catch
             {
                 return new List<RecentFileEntry>();
             }
+            finally
+            {
+                Gate.Release();
+            }
         }
 
-        private static async Task SaveAsync(List<RecentFileEntry> entries)
+        private static async Task<List<RecentFileEntry>> LoadCoreAsync()
         {
-            await SaveGate.WaitAsync();
+            var folder = ApplicationData.Current.LocalFolder;
+            if (await folder.TryGetItemAsync(SettingsFileName) is not StorageFile file)
+            {
+                return new List<RecentFileEntry>();
+            }
+
+            var json = await FileIO.ReadTextAsync(file);
+            return System.Text.Json.JsonSerializer.Deserialize<List<RecentFileEntry>>(json) ?? new List<RecentFileEntry>();
+        }
+
+        private static async Task SaveCoreAsync(List<RecentFileEntry> entries)
+        {
+            var folder = ApplicationData.Current.LocalFolder;
+            var temporaryFile = await folder.CreateFileAsync(TemporarySettingsFileName, CreationCollisionOption.ReplaceExisting);
+            await FileIO.WriteTextAsync(temporaryFile, System.Text.Json.JsonSerializer.Serialize(entries));
+            await temporaryFile.MoveAsync(folder, SettingsFileName, NameCollisionOption.ReplaceExisting);
+        }
+
+        /// <summary>Records (or bumps to the top) a file that was just opened or saved.</summary>
+        public static async Task AddAsync(StorageFile file)
+        {
+            await Gate.WaitAsync();
             try
             {
-                var folder = ApplicationData.Current.LocalFolder;
-                var temporaryFile = await folder.CreateFileAsync(TemporarySettingsFileName, CreationCollisionOption.ReplaceExisting);
-                await FileIO.WriteTextAsync(temporaryFile, System.Text.Json.JsonSerializer.Serialize(entries));
-                await temporaryFile.MoveAsync(folder, SettingsFileName, NameCollisionOption.ReplaceExisting);
+                var entries = await LoadCoreAsync();
+                string token;
+                try
+                {
+                    token = StorageApplicationPermissions.MostRecentlyUsedList.Add(file, file.Path);
+                }
+                catch
+                {
+                    return; // the WinRT list may be full or unavailable — MRU just won't track this one
+                }
+
+                var previousTokens = entries.Select(entry => entry.Token).ToHashSet(StringComparer.Ordinal);
+                var updated = RecentFileListPolicy.Insert(
+                    entries.Select(entry => new RecentFileListEntry(entry.Token, entry.DisplayName, entry.Path)),
+                    new RecentFileListEntry(token, file.Name, file.Path),
+                    MaxEntries);
+
+                foreach (var removedToken in previousTokens.Except(updated.Select(entry => entry.Token), StringComparer.Ordinal))
+                {
+                    TryRemoveFromList(removedToken);
+                }
+
+                entries = updated
+                    .Select(entry => new RecentFileEntry { Token = entry.Token, DisplayName = entry.DisplayName, Path = entry.Path })
+                    .ToList();
+
+                await SaveCoreAsync(entries);
             }
             catch
             {
@@ -65,41 +110,8 @@ namespace Slinky.Services
             }
             finally
             {
-                SaveGate.Release();
+                Gate.Release();
             }
-        }
-
-        /// <summary>Records (or bumps to the top) a file that was just opened or saved.</summary>
-        public static async Task AddAsync(StorageFile file)
-        {
-            var entries = await LoadAsync();
-
-            string token;
-            try
-            {
-                token = StorageApplicationPermissions.MostRecentlyUsedList.Add(file, file.Path);
-            }
-            catch
-            {
-                return; // the WinRT list may be full or unavailable — MRU just won't track this one
-            }
-
-            var previousTokens = entries.Select(entry => entry.Token).ToHashSet(StringComparer.Ordinal);
-            var updated = RecentFileListPolicy.Insert(
-                entries.Select(entry => new RecentFileListEntry(entry.Token, entry.DisplayName, entry.Path)),
-                new RecentFileListEntry(token, file.Name, file.Path),
-                MaxEntries);
-
-            foreach (var removedToken in previousTokens.Except(updated.Select(entry => entry.Token), StringComparer.Ordinal))
-            {
-                TryRemoveFromList(removedToken);
-            }
-
-            entries = updated
-                .Select(entry => new RecentFileEntry { Token = entry.Token, DisplayName = entry.DisplayName, Path = entry.Path })
-                .ToList();
-
-            await SaveAsync(entries);
         }
 
         /// <summary>Re-resolves a StorageFile from a stored entry. Returns null if the file moved/was deleted.</summary>
@@ -117,10 +129,22 @@ namespace Slinky.Services
 
         public static async Task RemoveAsync(RecentFileEntry entry)
         {
-            var entries = await LoadAsync();
-            entries.RemoveAll(e => e.Token == entry.Token);
-            TryRemoveFromList(entry.Token);
-            await SaveAsync(entries);
+            await Gate.WaitAsync();
+            try
+            {
+                var entries = await LoadCoreAsync();
+                entries.RemoveAll(e => e.Token == entry.Token);
+                TryRemoveFromList(entry.Token);
+                await SaveCoreAsync(entries);
+            }
+            catch
+            {
+                // MRU is a convenience, not critical data — never let this interrupt normal use.
+            }
+            finally
+            {
+                Gate.Release();
+            }
         }
 
         private static void TryRemoveFromList(string token)

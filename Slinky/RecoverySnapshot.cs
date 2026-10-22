@@ -5,6 +5,8 @@ namespace Slinky;
 
 public sealed class RecoverySnapshot
 {
+    // Zero means an older snapshot without ownership metadata and is treated as stale.
+    public int OwnerProcessId { get; set; }
     public string Text { get; set; } = string.Empty;
     public string? FilePath { get; set; }
     public DateTime SavedAt { get; set; }

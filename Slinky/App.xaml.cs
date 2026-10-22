@@ -1,6 +1,7 @@
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using System;
 using System.IO;
 using Windows.Storage;
@@ -15,6 +16,7 @@ namespace Slinky
     {
 
         private Window? _window;
+        private bool unhandledExceptionReported;
 
         /// <summary>
         /// Lets other classes (like Note, when it needs to show an "Abrir"/"Salvar como"
@@ -66,6 +68,31 @@ namespace Slinky
             }
 
             e.Handled = true;
+
+            if (unhandledExceptionReported || _window?.Content is not FrameworkElement root)
+            {
+                return;
+            }
+
+            unhandledExceptionReported = true;
+            _window.DispatcherQueue.TryEnqueue(async () =>
+            {
+                try
+                {
+                    var dialog = new ContentDialog
+                    {
+                        XamlRoot = root.XamlRoot,
+                        Title = "Ocorreu um erro inesperado",
+                        Content = "O erro foi registrado em crash.log. Algumas operações podem não estar disponíveis; salve seu trabalho e reinicie o Slinky.",
+                        CloseButtonText = "OK"
+                    };
+                    await dialog.ShowAsync();
+                }
+                catch
+                {
+                    // The UI may already be inconsistent; logging above is the fallback.
+                }
+            });
         }
     }
 }

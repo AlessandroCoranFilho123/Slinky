@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using Windows.Storage;
@@ -20,8 +21,9 @@ namespace Slinky.Services
     /// </summary>
     public static class SessionService
     {
-        private const string SessionFileName = "session.json";
-        private const string TemporarySessionFileName = "session.json.tmp";
+        private const string LegacySessionFileName = "session.json";
+        private static string SessionFileName => $"session-{Environment.ProcessId}.json";
+        private static string TemporarySessionFileName => $"session-{Environment.ProcessId}.json.tmp";
         private static readonly SemaphoreSlim Gate = new(1, 1);
         private static readonly List<string> CurrentTokens = new();
 
@@ -81,35 +83,37 @@ namespace Slinky.Services
             try
             {
                 var folder = ApplicationData.Current.LocalFolder;
-                if (await folder.TryGetItemAsync(SessionFileName) is not StorageFile sessionFile)
-                {
-                    return result;
-                }
+                var files = await folder.GetFilesAsync();
+                var candidates = files
+                    .Where(file => IsSessionFile(file.Name) && !IsOwnedByLiveProcess(file.Name))
+                    .OrderByDescending(file => file.DateCreated);
 
-                var json = await FileIO.ReadTextAsync(sessionFile);
-                if (!SessionStateCodec.TryDeserialize(json, out var tokens))
+                foreach (var sessionFile in candidates)
                 {
+                    if (!SessionStateCodec.TryDeserialize(await FileIO.ReadTextAsync(sessionFile), out var tokens))
+                    {
+                        await sessionFile.DeleteAsync();
+                        continue;
+                    }
+
+                    foreach (var token in tokens)
+                    {
+                        try
+                        {
+                            result.Add(await StorageApplicationPermissions.FutureAccessList.GetFileAsync(token));
+                        }
+                        catch
+                        {
+                            // moved/deleted since — just skip it
+                        }
+                        finally
+                        {
+                            try { StorageApplicationPermissions.FutureAccessList.Remove(token); } catch { }
+                        }
+                    }
+
                     await sessionFile.DeleteAsync();
-                    return result;
                 }
-
-                foreach (var token in tokens)
-                {
-                    try
-                    {
-                        result.Add(await StorageApplicationPermissions.FutureAccessList.GetFileAsync(token));
-                    }
-                    catch
-                    {
-                        // moved/deleted since — just skip it
-                    }
-                    finally
-                    {
-                        try { StorageApplicationPermissions.FutureAccessList.Remove(token); } catch { }
-                    }
-                }
-
-                await sessionFile.DeleteAsync();
                 CurrentTokens.Clear();
             }
             catch
@@ -122,6 +126,43 @@ namespace Slinky.Services
             }
 
             return result;
+        }
+
+        private static bool IsSessionFile(string fileName)
+            => fileName.Equals(LegacySessionFileName, StringComparison.OrdinalIgnoreCase)
+               || (fileName.StartsWith("session-", StringComparison.OrdinalIgnoreCase)
+                   && fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase));
+
+        private static bool IsOwnedByLiveProcess(string fileName)
+        {
+            if (!fileName.StartsWith("session-", StringComparison.OrdinalIgnoreCase))
+            {
+                // The legacy file has no owner metadata and is safe to consume once.
+                return false;
+            }
+
+            var pidText = fileName["session-".Length..^".json".Length];
+            if (!int.TryParse(pidText, out var processId))
+            {
+                return false;
+            }
+
+            if (processId == Environment.ProcessId)
+            {
+                // This process has not written its session yet during startup. A reused
+                // PID therefore represents stale state, not a live owner.
+                return false;
+            }
+
+            try
+            {
+                using var process = System.Diagnostics.Process.GetProcessById(processId);
+                return !process.HasExited;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

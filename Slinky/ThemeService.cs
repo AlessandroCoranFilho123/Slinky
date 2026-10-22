@@ -11,7 +11,7 @@ namespace Slinky.Services
 {
     /// <summary>
     /// A single, app-wide theme source. Every open window/page binds its colors to
-    /// this singleton's brush properties via x:Bind (Mode=OneWay). Because Note
+    /// this singleton's brush properties via x:Bind (Mode=OneWay). Because ThemeService
     /// implements INotifyPropertyChanged, changing the active theme here updates
     /// every bound control immediately, without reloading any page or window.
     ///

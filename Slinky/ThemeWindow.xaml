@@ -23,11 +23,11 @@
                    Grid.Row="0"/>
 
         <StackPanel Grid.Row="1" Spacing="8">
-            <TextBlock Text="Claro" Opacity="0.7" Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"/>
+            <TextBlock Text="Claro" Opacity="0.8" Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"/>
             <RadioButton x:Name="LightDefaultRadio" Content="Padrão" GroupName="ThemeGroup" Tag="LightDefault" Checked="ThemeRadio_Checked"/>
             <RadioButton x:Name="LightYellowishRadio" Content="Amarelado" GroupName="ThemeGroup" Tag="LightYellowish" Checked="ThemeRadio_Checked"/>
 
-            <TextBlock Text="Escuro" Opacity="0.7" Margin="0,12,0,0" Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"/>
+            <TextBlock Text="Escuro" Opacity="0.8" Margin="0,12,0,0" Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"/>
             <RadioButton x:Name="DarkDefaultRadio" Content="Padrão" GroupName="ThemeGroup" Tag="DarkDefault" Checked="ThemeRadio_Checked"/>
             <RadioButton x:Name="DarkBluishRadio" Content="Azulado" GroupName="ThemeGroup" Tag="DarkBluish" Checked="ThemeRadio_Checked"/>
             <RadioButton x:Name="DarkDraculaRadio" Content="Dracula" GroupName="ThemeGroup" Tag="DarkDracula" Checked="ThemeRadio_Checked"/>
@@ -35,7 +35,7 @@
 
         <TextBlock Grid.Row="2"
                    Text="Todas as abas e janelas abertas atualizam na hora."
-                   Opacity="0.6"
+                   Opacity="0.8"
                    FontSize="12"
                    TextWrapping="Wrap"
                    Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"/>

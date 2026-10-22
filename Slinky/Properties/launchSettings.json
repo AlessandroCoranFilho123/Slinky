@@ -2,9 +2,6 @@
   "profiles": {
     "Slinky (Package)": {
       "commandName": "MsixPackage"
-    },
-    "Slinky (Unpackaged)": {
-      "commandName": "Project"
     }
   }
 }
