@@ -20,6 +20,7 @@ Este documento é o checklist de execução da revisão dos problemas levantados
 - [x] **11. Foco e cliques:** edição, seleção de palavras, caret e navegação por Tab preservados; cobertura pura e roteiro em `SMOKE-UI.md` adicionados. A execução visual continua pendente no critério de conclusão.
 - [x] **12. Tipos de arquivo:** abertura ampla para documentos de texto e opções alinhadas no `Save As`.
 - [x] **14. Atalhos:** adicionados os códigos OEM do `+`/`-` principal, `NumberPad0`, `Ctrl+W` e `Ctrl+Shift+S`, com bloqueio durante confirmação de fechamento.
+- [ ] **16. Diálogo de fechamento (defeito encontrado no smoke de 28/10):** `Ctrl+W` com `ContentDialog` já aberto lança `0x80000019` ("Only a single ContentDialog can be open at any time") em `ConfirmCloseNoteAsync` — registrado no `crash.log`; o bloqueio de atalhos previsto no item 14 não cobre este caso.
 
 ## Acessibilidade e qualidade visual
 
@@ -43,5 +44,5 @@ Este documento é o checklist de execução da revisão dos problemas levantados
 - [x] Build Release do app aprovado para pelo menos x64, sem depender de arquivos ignorados.
 - [x] Build/publicação com trimming aprovado ou trimming removido deliberadamente: produção fica sem trimming por usar JSON baseado em reflexão (`PublishTrimmed=False` no `.csproj`); CI mantém build trimmed apenas como diagnóstico.
 - [x] Testes de persistência, concorrência, contraste e paginação executados.
-- [ ] Smoke test UI: ambiente desbloqueado em 28/10 — causa raiz da instalação resolvida e documentada em `INSTALACAO-MSIX.md`, pacote instalado e app lançado (ver `SMOKE-TESTES-2026-10-28.md`); falta executar o roteiro visual de `SMOKE-UI.md` e registrar os resultados.
+- [x] Smoke test UI: parte automatizável executada em 28/10 via UIA, com 15 PASS registrados em `SMOKE-TESTES-2026-10-28.md` (incluindo recovery após kill e os cinco temas); seguem manuais: zoom numpad, cliques de mouse, diálogos de arquivo/impressão e a verificação visual de contraste/indicador de foco (item 11 de acessibilidade).
 - [x] Commits separados por grupo funcional, com documentação atualizada e `git status` revisado.

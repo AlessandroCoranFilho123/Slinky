@@ -59,4 +59,4 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 
 | Data | Versão do Windows | Arquitetura | Commit/pacote | Resultado | Falhas e evidências |
 |---|---|---|---|---|---|
-|  |  |  |  | Não executado |  |
+| 28/10/2026 | 10.0.19045 | x64 | pacote `…_1xsa4dc8b90qj` (dev, commits até `68a0f52`) | Executado em parte (automação UIA) | 15 PASS; zoom numpad e cenários visuais/manuais pendentes; defeito `Ctrl+W` com diálogo aberto — ver `SMOKE-TESTES-2026-10-28.md` |
