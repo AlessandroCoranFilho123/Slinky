@@ -19,9 +19,7 @@
             <KeyboardAccelerator Key="H" Modifiers="Control" Invoked="FindReplaceAccelerator_Invoked"/>
             <KeyboardAccelerator Key="P" Modifiers="Control" Invoked="ImprimirAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Add" Modifiers="Control" Invoked="ZoomInAccelerator_Invoked"/>
-            <KeyboardAccelerator Key="OemPlus" Modifiers="Control" Invoked="ZoomInAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Subtract" Modifiers="Control" Invoked="ZoomOutAccelerator_Invoked"/>
-            <KeyboardAccelerator Key="OemMinus" Modifiers="Control" Invoked="ZoomOutAccelerator_Invoked"/>
             <KeyboardAccelerator Key="Number0" Modifiers="Control" Invoked="ZoomResetAccelerator_Invoked"/>
             <KeyboardAccelerator Key="NumberPad0" Modifiers="Control" Invoked="ZoomResetAccelerator_Invoked"/>
             <KeyboardAccelerator Key="W" Modifiers="Control" Invoked="FecharAbaAccelerator_Invoked"/>

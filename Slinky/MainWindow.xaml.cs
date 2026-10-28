@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Windows.Graphics.Printing;
 using Windows.Storage.Pickers;
+using Windows.System;
 using Windows.UI;
 using Microsoft.UI;
 
@@ -44,6 +45,7 @@ namespace Slinky
         public MainWindow()
         {
             this.InitializeComponent();
+            AddMainKeyboardAccelerators();
             WindowIconService.Apply(this);
             AppWindow.Closing += MainAppWindow_Closing;
 
@@ -65,6 +67,30 @@ namespace Slinky
 
             // The initial blank note is created after session/recovery restoration.
             // Creating it here would leave an extra empty tab on every restored session.
+        }
+
+        private void AddMainKeyboardAccelerators()
+        {
+            // Windows.System.VirtualKey does not expose names for the main keyboard
+            // '+'/'-' OEM scan codes in the SDK used by the XAML compiler. Their
+            // documented virtual-key values are 0xBB and 0xBD, so add them at runtime
+            // while retaining Add/Subtract for numeric-keypad users.
+            var plus = new KeyboardAccelerator
+            {
+                Key = (VirtualKey)0xBB,
+                Modifiers = VirtualKeyModifiers.Control
+            };
+            plus.Invoked += ZoomInAccelerator_Invoked;
+
+            var minus = new KeyboardAccelerator
+            {
+                Key = (VirtualKey)0xBD,
+                Modifiers = VirtualKeyModifiers.Control
+            };
+            minus.Invoked += ZoomOutAccelerator_Invoked;
+
+            RootGrid.KeyboardAccelerators.Add(plus);
+            RootGrid.KeyboardAccelerators.Add(minus);
         }
 
         private void ApplyElementTheme()
