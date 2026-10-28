@@ -43,5 +43,5 @@ Este documento é o checklist de execução da revisão dos problemas levantados
 - [x] Build Release do app aprovado para pelo menos x64, sem depender de arquivos ignorados.
 - [x] Build/publicação com trimming aprovado ou trimming removido deliberadamente: produção fica sem trimming por usar JSON baseado em reflexão (`PublishTrimmed=False` no `.csproj`); CI mantém build trimmed apenas como diagnóstico.
 - [x] Testes de persistência, concorrência, contraste e paginação executados.
-- [ ] Smoke test UI documentado e executado quando o ambiente Windows/WinUI estiver disponível (roteiro em `SMOKE-UI.md`; tentativas registradas em `SMOKE-TESTES-2026-10-22.md`).
+- [ ] Smoke test UI: ambiente desbloqueado em 28/10 — causa raiz da instalação resolvida e documentada em `INSTALACAO-MSIX.md`, pacote instalado e app lançado (ver `SMOKE-TESTES-2026-10-28.md`); falta executar o roteiro visual de `SMOKE-UI.md` e registrar os resultados.
 - [x] Commits separados por grupo funcional, com documentação atualizada e `git status` revisado.

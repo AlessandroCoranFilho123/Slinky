@@ -30,6 +30,8 @@ No Windows, execute `instalar-slinky.bat` na raiz do repositório. O script rest
 
 Para apenas gerar o pacote sem instalar, execute `instalar-slinky.bat --build-only`. O arquivo será criado em `Slinky/AppPackages`.
 
+Se a instalação falhar, consulte [`docs/INSTALACAO-MSIX.md`](docs/INSTALACAO-MSIX.md): ele mapeia os erros do AppX (confiança de certificado, conflito de identidade entre builds locais e de release) às causas raiz verificadas e à receita de instalação que funciona. Orientação de trabalho para agentes de IA está em [`AGENTS.md`](AGENTS.md).
+
 O certificado de desenvolvimento é criado ou reutilizado no armazenamento do usuário atual (`CN=Alessandro`) e não é enviado para nenhum lugar. O script usa um certificado compatível com assinatura de pacotes, registra-o em `TrustedPeople` por meio do instalador de desenvolvimento do Windows e pode solicitar confirmação do UAC. Se o Windows bloquear sideloading, habilite o **Modo de Desenvolvedor** em **Configurações → Sistema → Para desenvolvedores**.
 
 Durante a instalação local, o certificado autoassinado também pode ser registrado em

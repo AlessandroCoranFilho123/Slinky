@@ -31,10 +31,25 @@ o bundle foi recriado e inspecionado:
 O único aviso do build foi ambiental (`mspdbcmf.exe` ausente impede o pacote de
 símbolos) e não afeta o aplicativo.
 
+## Instalação MSIX e lançamento (complemento da mesma data)
+
+O bloqueio registrado em `SMOKE-TESTES-2026-10-22.md` foi resolvido no mesmo dia
+28/10, com diagnóstico pelo log de eventos do AppX. Resumo (detalhes e causas raiz
+em [`INSTALACAO-MSIX.md`](INSTALACAO-MSIX.md)):
+
+1. Build assinado com a receita da CI (`WindowsAppSDKSelfContained=true` +
+   `PackageCertificateThumbprint` do certificado local `CN=Alessandro`).
+2. Importação do certificado para `LocalMachine\TrustedPeople` e `Root` com UAC
+   aprovado — a confiança só no usuário não basta para o AppXSvc.
+3. Remoção da família antiga do release (`…_b2zjezss9gtqm`, publisher
+   `CN=Slinky Release`) que conflitava com a família dev (`0x80073CF3`).
+4. `Add-AppxPackage` aprovado: pacote
+   `46cebc95-…_1.0.0.0_x64__1xsa4dc8b90qj` instalado (assinatura Developer).
+5. Lançamento via `shell:AppsFolder\…!App` confirmado: processo em execução
+   com janela ativa.
+
 ## Testes de interface
 
-Continuam pendentes neste ambiente, pelos mesmos motivos registrados em
-`SMOKE-TESTES-2026-10-22.md` (WinUI self-contained exige identidade de pacote e o
-módulo AppX local não conclui a instalação). O roteiro a executar está em
-`SMOKE-UI.md`, incluindo o indicador de foco nos cinco temas e as duas instâncias
-simultâneas para recovery.
+Com o app instalado e lançando, resta apenas **executar o roteiro visual** de
+`SMOKE-UI.md` (foco nos cinco temas, busca, atalhos, impressão e duas instâncias
+simultâneas para recovery) e registrar os resultados aqui.
