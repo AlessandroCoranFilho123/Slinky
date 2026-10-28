@@ -3,8 +3,8 @@ using Xunit;
 
 namespace Slinky.Tests
 {
-    [Trait("Category", "Integration")]
-    public class ThemeSwitchingIntegrationTests
+    [Trait("Category", "Unit")]
+    public class ThemeTabStateNotificationTests
     {
         [Fact]
         public void ExistingTabsReceiveEveryPaletteTransition()

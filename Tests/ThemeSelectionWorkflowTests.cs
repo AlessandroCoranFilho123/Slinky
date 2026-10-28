@@ -4,12 +4,11 @@ using Xunit;
 namespace Slinky.Tests
 {
     /// <summary>
-    /// Headless end-to-end workflow for the theme boundary. The WinUI smoke run covers
-    /// the actual window; this test covers the same user sequence without requiring a
-    /// registered Windows App SDK runtime in CI.
+    /// Exercises theme selection against the headless tab-state model. This does not
+    /// instantiate WinUI windows or controls; visual behavior belongs to the UI smoke run.
     /// </summary>
-    [Trait("Category", "EndToEnd")]
-    public class ThemeSwitchingEndToEndTests
+    [Trait("Category", "Unit")]
+    public class ThemeSelectionWorkflowTests
     {
         [Fact]
         public void OpenTabsFollowTheUsersCompleteThemeSelectionWorkflow()
