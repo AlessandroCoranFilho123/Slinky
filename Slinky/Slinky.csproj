@@ -13,23 +13,13 @@
     <Nullable>enable</Nullable>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
-  <ItemGroup>
-    <None Remove="Assets\AppIcon.ico" />
-    <None Remove="Assets\BadgeLogo.scale-100.png" />
-    <None Remove="Assets\BadgeLogo.scale-125.png" />
-    <None Remove="Assets\BadgeLogo.scale-150.png" />
-    <None Remove="Assets\BadgeLogo.scale-200.png" />
-    <None Remove="Assets\BadgeLogo.scale-400.png" />
-  </ItemGroup>
-
+  <!--
+    AppIcon.ico is loaded at runtime by WindowIconService and must ship beside the
+    executable. The packaging glob already covers every manifest-referenced logo
+    under Assets, so only the runtime icon needs an explicit entry.
+  -->
   <ItemGroup>
     <Content Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="Assets\SplashScreen.scale-200.png" />
-    <Content Include="Assets\LockScreenLogo.scale-200.png" />
-    <Content Include="Assets\Square150x150Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.scale-200.png" />
-    <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
-    <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
 
   <ItemGroup>
