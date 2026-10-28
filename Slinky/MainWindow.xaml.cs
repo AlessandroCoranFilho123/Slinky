@@ -33,6 +33,10 @@ namespace Slinky
         private PrintSettings currentPrintSettings = new();
         private bool closeConfirmed;
         private bool closePromptOpen;
+        // Only one ContentDialog may be open at a time (XAML rule); every ShowAsync
+        // site below sets this so shortcuts and menu handlers can wait instead of
+        // throwing COMException 0x80000019.
+        private bool contentDialogOpen;
         private bool startupRestorationInProgress = true;
 
         private sealed class PrintSettings
@@ -426,6 +430,11 @@ namespace Slinky
                 return true;
             }
 
+            if (contentDialogOpen)
+            {
+                return false;
+            }
+
             var dialog = new ContentDialog
             {
                 XamlRoot = this.Content.XamlRoot,
@@ -437,7 +446,16 @@ namespace Slinky
                 DefaultButton = ContentDialogButton.Primary
             };
 
-            var result = await dialog.ShowAsync();
+            contentDialogOpen = true;
+            ContentDialogResult result;
+            try
+            {
+                result = await dialog.ShowAsync();
+            }
+            finally
+            {
+                contentDialogOpen = false;
+            }
 
             if (result == ContentDialogResult.None)
             {
@@ -669,7 +687,7 @@ namespace Slinky
         private void SalvarAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
         {
             args.Handled = true;
-            if (closePromptOpen)
+            if (closePromptOpen || contentDialogOpen)
             {
                 return;
             }
@@ -679,7 +697,7 @@ namespace Slinky
         private void SalvarComoAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
         {
             args.Handled = true;
-            if (closePromptOpen)
+            if (closePromptOpen || contentDialogOpen)
             {
                 return;
             }
@@ -689,7 +707,7 @@ namespace Slinky
         private async void FecharAbaAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
         {
             args.Handled = true;
-            if (closePromptOpen || NotesTabView.SelectedItem is not TabViewItem { Tag: Note note })
+            if (closePromptOpen || contentDialogOpen || NotesTabView.SelectedItem is not TabViewItem { Tag: Note note })
             {
                 return;
             }
@@ -932,6 +950,10 @@ namespace Slinky
 
         private async Task ShowInfoDialogAsync(string title, string message)
         {
+            if (contentDialogOpen)
+            {
+                return;
+            }
             var dialog = new ContentDialog
             {
                 XamlRoot = this.Content.XamlRoot,
@@ -939,7 +961,15 @@ namespace Slinky
                 Content = message,
                 CloseButtonText = "OK"
             };
-            await dialog.ShowAsync();
+            contentDialogOpen = true;
+            try
+            {
+                await dialog.ShowAsync();
+            }
+            finally
+            {
+                contentDialogOpen = false;
+            }
         }
     }
 }
