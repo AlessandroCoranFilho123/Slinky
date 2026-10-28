@@ -77,15 +77,19 @@ observação visual (contraste, indicador de foco), ficou pendente.
 | 6. Percorrer os cinco temas | PASS | janela "Configurar tema" com 5 opções; todas trocadas sem travar; voltou ao Padrão |
 | 2/6. Indicador de foco e contraste nos cinco temas | PENDENTE | verificação visual; manual |
 
-### Defeito descoberto: `Ctrl+W` com diálogo já aberto
+### Defeito descoberto e corrigido: `Ctrl+W` com diálogo já aberto
 
 `crash.log` (28/10 19:56:58Z) registrou `COMException 0x80000019 — "Only a single
 ContentDialog can be open at any time"` em `FecharAbaAccelerator_Invoked →
 ConfirmCloseNoteAsync → ContentDialog.ShowAsync()`: pressionar `Ctrl+W` enquanto a
 confirmação de fechamento já está aberta tenta abrir um segundo diálogo em vez de
-ser bloqueado (o item 14 do plano previa o bloqueio). O tratamento de exceções
-registrou e o app seguiu vivo — mas o fechamento da aba falha silenciosamente nessa
-condição. Foi também a causa dos fechamentos intermitentes durante os testes.
+ser bloqueado (o item 14 do plano previa o bloqueio).
+
+**Correção (mesma data):** flag compartilhada `contentDialogOpen` setada em
+try/finally nos dois pontos de `ShowAsync` e verificada nos aceleradores `Ctrl+S`,
+`Ctrl+Shift+S` e `Ctrl+W`. Validação: 72/72 testes, e no app reinstalado a
+reprodução do cenário passou — segundo `Ctrl+W` ignorado com um único diálogo na
+tela, nenhuma entrada nova no `crash.log` e `Esc` preservando aba e conteúdo.
 
 ### Limitações do método
 

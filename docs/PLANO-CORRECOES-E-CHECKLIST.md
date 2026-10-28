@@ -20,7 +20,7 @@ Este documento é o checklist de execução da revisão dos problemas levantados
 - [x] **11. Foco e cliques:** edição, seleção de palavras, caret e navegação por Tab preservados; cobertura pura e roteiro em `SMOKE-UI.md` adicionados. A execução visual continua pendente no critério de conclusão.
 - [x] **12. Tipos de arquivo:** abertura ampla para documentos de texto e opções alinhadas no `Save As`.
 - [x] **14. Atalhos:** adicionados os códigos OEM do `+`/`-` principal, `NumberPad0`, `Ctrl+W` e `Ctrl+Shift+S`, com bloqueio durante confirmação de fechamento.
-- [ ] **16. Diálogo de fechamento (defeito encontrado no smoke de 28/10):** `Ctrl+W` com `ContentDialog` já aberto lança `0x80000019` ("Only a single ContentDialog can be open at any time") em `ConfirmCloseNoteAsync` — registrado no `crash.log`; o bloqueio de atalhos previsto no item 14 não cobre este caso.
+- [x] **16. Diálogo de fechamento (defeito encontrado no smoke de 28/10):** `Ctrl+W` com confirmação aberta lançava `0x80000019` ("Only a single ContentDialog can be open at any time"). Corrigido com bloqueio compartilhado `contentDialogOpen` em todos os `ShowAsync` (`ConfirmCloseNoteAsync`, `ShowInfoDialogAsync`) e guardas nos aceleradores `Ctrl+S`, `Ctrl+Shift+S` e `Ctrl+W`. Reprodução pós-fix no app instalado: segundo `Ctrl+W` ignorado, sem entrada nova no `crash.log` e cancelamento preservando a aba.
 
 ## Acessibilidade e qualidade visual
 
