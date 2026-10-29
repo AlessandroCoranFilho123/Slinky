@@ -59,7 +59,7 @@ dotnet build Slinky/Slinky.csproj -c Release --no-restore \
   -p:PublishTrimmed=false -p:WindowsAppSDKSelfContained=true \
   -p:AppxPackageSigningEnabled=true \
   -p:PackageCertificateThumbprint=307E3EC24E852C4588156FDB999433A1CCC11BC0
-# Saída: Slinky/AppPackages/Slinky_1.0.3.0_Test/*.msixbundle
+# Saída: Slinky/AppPackages/Slinky_1.0.4.0_Test/*.msixbundle
 ```
 
 Instalação e lançamento (PowerShell) — leia [`docs/INSTALACAO-MSIX.md`](docs/INSTALACAO-MSIX.md)
@@ -78,15 +78,23 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
   defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
-- Versão atual: **1.0.3.0** (release `v1.0.3` no GitHub; anterior v1.0.2).
+- Versão atual: **1.0.4.0** (release `v1.0.4` no GitHub; anterior v1.0.3).
+- **Release notes**: fonte única em [`RELEASE-NOTES.md`](RELEASE-NOTES.md) — atualize a
+  seção da nova release ANTES de criar a tag (`release.yml` usa `body_path` + changelog
+  automático). Para editar o corpo de uma release já publicada é preciso token com
+  escopo `repo` (a credencial do git local não tem — tentativa de 29/10 falhou com 404).
+- Decisões de comportamento fechadas no §15 da auditoria (undo/`IsDirty`, arquivo
+  alterado externamente, Windows-1252, janelas/processos) e **recuperação
+  reconectada ao arquivo original** (tokens FAL nos snapshots).
 - O `.csproj` usa **referências granulares do Windows App SDK** (WinUI + Runtime +
   DWrite), sem AI/ML/Widgets — não voltar ao metapacote (~40 MB de payload não
   usado). Fundamento e números: `docs/DESEMPENHO-E-TAMANHO.md`.
 - Linha de base de desempenho (máquina local): CPU ociosa 0%, Private Working Set
-  ~51 MB, partida aquecida ~0,4 s até janela / ~0,65 s até editor; 204 MB
-  instalados (self-contained). Metas do roteiro de otimização atendidas.
+  ~51–67 MB conforme sessão (piso do WinUI 3 medido: 44,7 MB com app vazio),
+  partida aquecida ~0,4 s até janela / ~0,65 s até editor; 204 MB instalados
+  (self-contained).
 - Pacote instalado nesta máquina:
-  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.3.0_x64__1xsa4dc8b90qj`
+  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.4.0_x64__1xsa4dc8b90qj`
   (publisher `CN=Alessandro`, assinatura Developer). O AUMID da seção anterior
   corresponde a essa família.
 - Histórico e causas raiz dos erros de instalação: `docs/INSTALACAO-MSIX.md`.

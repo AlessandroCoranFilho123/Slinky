@@ -117,6 +117,64 @@ verificados por grep no repositório inteiro. Autosave é orientado a eventos
 há mudança. As 56 threads do processo são do runtime/WinUI (render, COM, GC,
 thread pool), todas paradas em repouso.
 
+## Estudo de memória aprofundado (29/10/2026 — pedido de meta realista)
+
+A meta "51 MB" correspondia ao valor **já medido**, não a um alvo. Para estipular o
+ótimo realista, mediu-se o **piso do framework** com um app WinUI 3 vazio
+(janela única, sem conteúdo), construído e instalado com as mesmas flags do Slinky:
+
+| Condição | Empty WinUI 3 (piso) | Slinky |
+|---|---:|---:|
+| Fresh, 15 s de settle | PWS 63,1 MB / PB 81,4 MB | PWS 51,1–67,4 MB / PB 81–103 MB |
+| Aquecido, 45 s de settle | **PWS 44,7 MB / PB 62,8 MB** | PWS 50,5–66,9 MB / PB 79–103 MB |
+| CPU ociosa | 0s/20s | 0s/20s |
+
+Leituras:
+
+- O **piso do WinUI 3 estabilizado é ~45 MB privados** — uma janela vazia, sem
+  nenhuma funcionalidade, já consome isso. Os 146–161 MB de Working Set são
+  compartilhamento de DLLs mapeadas.
+- O Slinky estabilizado oscila entre **~50 e ~67 MB de PWS** conforme o conteúdo
+  da sessão restaurada (abas/arquivos abertos) e o momento do GC; em repouso
+  prolongado o valor não cresce (sem vazamento: 66,84 → 66,84 MB entre 65 s e
+  105 s de ociosidade).
+- O **ótimo realista para o Slinky é ~45–55 MB PWS**: o piso do framework mais
+  o custo do modelo de documento, abas, temas e sessão. O valor medido já vive
+  nessa faixa.
+- **1,7 MB (Bloco de Notas clássico) é impossível em WinUI 3** — o custo é do
+  runtime/XAML, não do aplicativo. Alcançá-lo exigiria reescrever em Win32 puro,
+  descartando WinUI/temas/acessibilidade — fora de questão por decisão de
+  arquitetura do projeto.
+- Alavancas de framework já esgotadas e rejeitadas com medição: GC não-concorrente
+  (piorou CPU ociosa), FDD (não muda PWS: 50,5 MB medidos), trimming (quebra
+  sessão/recovery), globalização invariante (altera collation).
+
+## Recuperação reconectada ao arquivo (29/10/2026)
+
+Nova funcionalidade (decisão do item 2 do §15 da auditoria): snapshots de recovery
+agora carregam o **token da FutureAccessList** do arquivo original
+(`RecoverySnapshot.FileToken`, capturado via `SessionService.TokenForPath`).
+Ao restaurar, `Note.TryReattachSavedFileAsync` resolve o token e reanexa a nota ao
+arquivo — a aba volta com o **nome do arquivo** e um Ctrl+S grava no documento
+original, sem "Salvar como" (paridade com o modelo de recuperação do Notepad
+moderno). Token expirado/ausente/patch de path divergente → comportamento anterior
+(nota sem título), garantido por `RecoveryReattachPolicy` (função pura, testada).
+Validado ponta a ponta: kill com conteúdo não salvo → relançar → Restaurar → aba
+`poema.txt` → Ctrl+S persistiu no arquivo original.
+
+## Comportamentos de referência do Bloco de Notas (decisões do §15)
+
+Experimentos executados no `notepad.exe` clássico desta máquina (Win10 19045,
+automação real via SendInput/UIA; evidências citadas):
+
+| Decisão | Comportamento observado no Notepad | Medida adotada no Slinky |
+|---|---|---|
+| Undo até o conteúdo salvo limpa "modificado"? | **Não** — após salvar 'abcd', undo para 'abc' e Alt+F4, o título continuou `*a.txt` (flag pegajosa) | **Mantido o flag pegajoso** (paridade; nenhum código mudou) |
+| Arquivo modificado externamente | **Sobrescrita silenciosa** — sem recarga nem aviso; o buffer local vence (disco ficou 'AC' após salvar sobre 'B' externo) | **Mesma política** (sem watcher/polling — também preserva CPU ociosa 0%) |
+| Codificações no salvar | Diálogo clássico oferece ANSI (Windows-1252) e variantes UTF (experimento inconclusivo por limitação de UIA em menu Win32; lista documentada) | **Windows-1252 com round-trip oficial**: `SaveAsync` preserva a codificação detectada (`TextFileCodec.Encode(Text, EncodingKind, …)`); sem seletor manual (diferença deliberada de escopo) |
+| Modelo de janelas | 2 janelas = **2 processos** | Já idêntico ("Nova janela" = novo processo) |
+| Recuperação de não salvos | Clássico não tem; moderno reconecta ao arquivo | **Implementado** (seção acima) — reconnect via FAL token |
+
 ## Histograma do pacote instalado (204 MB, principais itens)
 
 | Item | Tamanho | Papel |

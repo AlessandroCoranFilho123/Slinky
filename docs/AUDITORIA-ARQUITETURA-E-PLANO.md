@@ -373,22 +373,19 @@ O script `instalar-slinky.bat`:
 
 ## 15. Decisões ainda necessárias
 
-> **Atualização de 29/10/2026**: os itens 1 e 6 abaixo foram resolvidos. "Nova
-> janela" é um **novo processo** (implementado e validado com isolamento de
-> sessão/recovery por PID — ver `SMOKE-TESTES-2026-10-28.md`, seção 29/10), e a
-> infraestrutura de testes UI existe na forma do roteiro `SMOKE-UI.md` executado
-> por automação (UIA + SendInput) com registros completos. Os demais itens
-> continuam como decisões de produto em aberto; o item 7 segue deliberado
-> (produção sem trimming).
+> **Fechamento de 29/10/2026 — todos os itens resolvidos.** Os comportamentos de
+> referência do Bloco de Notas foram definidos por experimento no `notepad.exe`
+> clássico desta máquina (automação real; evidências e medidas em
+> `DESEMPENHO-E-TAMANHO.md`, seção "Comportamentos de referência").
 
-1. ~~Definir definitivamente se "Nova janela" significa novo processo ou múltiplas janelas no mesmo processo.~~ (resolvido: novo processo)
-2. Definir reconexão automática do recovery ao arquivo original.
-3. Definir política para arquivo modificado externamente.
-4. Definir suporte oficial a Windows-1252 ou se ele deve ser apenas fallback.
-5. Definir se desfazer até o conteúdo salvo limpa `IsDirty`.
-6. ~~Definir infraestrutura de testes UI Windows.~~ (resolvido: `SMOKE-UI.md` + automação)
-7. O pacote de produção permanece sem trimming enquanto os codecs JSON forem reflexivos; o build trimmed fica apenas como diagnóstico.
-8. Fixar o SDK por `global.json` para evitar builds com SDK preview.
+1. ~~"Nova janela": novo processo ou múltiplas janelas?~~ **Resolvido: novo processo** (Notepad clássico abre 2 processos para 2 janelas — confirmado por medição; implementado e validado com isolamento de sessão/recovery por PID).
+2. ~~Reconexão automática do recovery ao arquivo original.~~ **Resolvido: implementada** (`RecoverySnapshot.FileToken` + `Note.TryReattachSavedFileAsync` via FutureAccessList; validado ponta a ponta — kill → Restaurar → aba volta com o nome do arquivo e Ctrl+S grava no original). Paridade com o modelo de recuperação do Notepad moderno.
+3. ~~Política para arquivo modificado externamente.~~ **Resolvido: sobrescrita silenciosa, sem recarga/aviso** (comportamento observado no Notepad: buffer local vence). Sem watcher/polling — preserva CPU ociosa 0%.
+4. ~~Suporte oficial a Windows-1252.~~ **Resolvido: round-trip oficial** — `SaveAsync` preserva a codificação detectada (1252 incluído), como o ANSI do Notepad; sem seletor manual de codificação (diferença deliberada de escopo).
+5. ~~Desfazer até o conteúdo salvo limpa `IsDirty`?~~ **Resolvido: não — flag pegajoso**, paridade com o Notepad clássico (evidência: após salvar 'abcd', undo para 'abc' e fechar, o título permaneceu `*a.txt`).
+6. ~~Infraestrutura de testes UI Windows.~~ **Resolvida: `SMOKE-UI.md` + automação** (UIA + SendInput), com registros completos de 28–29/10.
+7. ~~Trimming em produção.~~ **Decisão final deliberada: sem trimming** enquanto os codecs JSON forem reflexivos; build trimmed permanece apenas como diagnóstico na CI.
+8. ~~Fixar SDK por `global.json`.~~ **Decisão: não fixar, com justificativa registrada** — as máquinas de desenvolvimento desta utilizam SDKs 10.0.x/11.0.100-rc (não há SDK 8 instalado localmente, e um `global.json` 8.0 quebraria o ambiente local); a CI fixa o SDK via `setup-dotnet` (8.0.x) e o `TargetFramework net8.0-windows10.0.19041.0` já fixa o alvo independentemente do SDK.
 
 ## 16. Status consolidado das oito áreas originais
 
