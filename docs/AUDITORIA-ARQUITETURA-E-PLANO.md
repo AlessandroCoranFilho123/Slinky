@@ -373,25 +373,39 @@ O script `instalar-slinky.bat`:
 
 ## 15. Decisões ainda necessárias
 
-1. Definir definitivamente se “Nova janela” significa novo processo ou múltiplas janelas no mesmo processo.
+> **Atualização de 29/10/2026**: os itens 1 e 6 abaixo foram resolvidos. "Nova
+> janela" é um **novo processo** (implementado e validado com isolamento de
+> sessão/recovery por PID — ver `SMOKE-TESTES-2026-10-28.md`, seção 29/10), e a
+> infraestrutura de testes UI existe na forma do roteiro `SMOKE-UI.md` executado
+> por automação (UIA + SendInput) com registros completos. Os demais itens
+> continuam como decisões de produto em aberto; o item 7 segue deliberado
+> (produção sem trimming).
+
+1. ~~Definir definitivamente se "Nova janela" significa novo processo ou múltiplas janelas no mesmo processo.~~ (resolvido: novo processo)
 2. Definir reconexão automática do recovery ao arquivo original.
 3. Definir política para arquivo modificado externamente.
 4. Definir suporte oficial a Windows-1252 ou se ele deve ser apenas fallback.
 5. Definir se desfazer até o conteúdo salvo limpa `IsDirty`.
-6. Definir infraestrutura de testes UI Windows.
+6. ~~Definir infraestrutura de testes UI Windows.~~ (resolvido: `SMOKE-UI.md` + automação)
 7. O pacote de produção permanece sem trimming enquanto os codecs JSON forem reflexivos; o build trimmed fica apenas como diagnóstico.
 8. Fixar o SDK por `global.json` para evitar builds com SDK preview.
 
 ## 16. Status consolidado das oito áreas originais
 
+> **Atualização de 29/10/2026**: a tabela abaixo foi concluída pelo plano de
+> correções (`PLANO-CORRECOES-E-CHECKLIST.md`, 100% com evidência) e pelos smokes
+> de 28–29/10 — incluindo teste multi-processo real (duas janelas, kill e recovery
+> determinístico), automação da UI de busca, recovery após encerramento forçado e
+> verificação visual dos cinco temas com indicador de foco.
+
 | Área | Estado |
 |---|---|
 | Finais de linha e codificação | Implementada na camada de documento e testada |
 | Restauração de sessão | Implementada com deduplicação, ordem e aba vazia corrigida |
-| Múltiplas instâncias/janelas | Isolamento por PID implementado; teste multi-processo real ainda pendente |
-| Busca e substituição | Implementada e com testes puros; UI ainda sem automação |
-| Recovery não salvo | Implementado com atomicidade e lifecycle; integração completa ainda pendente |
-| Impressão | Paginação corrigida e testada; preview nativo ainda sem teste |
+| Múltiplas instâncias/janelas | Implementada e validada com processos reais (28–29/10) |
+| Busca e substituição | Implementada com testes puros e UI validada por automação |
+| Recovery não salvo | Implementado e validado de ponta a ponta (kill forçado → restauração única) |
+| Impressão | Paginação corrigida e testada; diálogo de impressão abre/cancela validado (impressão em hardware segue manual) |
 | Testes e CI | Fortalecido com arquiteturas, MSIX, instalação e trimming |
 | Documentação | Consolidada neste documento e parcialmente refletida no README |
 
