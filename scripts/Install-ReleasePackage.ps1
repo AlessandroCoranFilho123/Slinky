@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 if ([string]::IsNullOrWhiteSpace($PackagePath)) {
-    $PackagePath = Join-Path $PSScriptRoot 'Slinky-v1.0.2-x64.msixbundle'
+    $PackagePath = Join-Path $PSScriptRoot 'Slinky-v1.0.3-x64.msixbundle'
 }
 if ([string]::IsNullOrWhiteSpace($CertificatePath)) {
     $CertificatePath = Join-Path $PSScriptRoot 'Slinky-Development.cer'
