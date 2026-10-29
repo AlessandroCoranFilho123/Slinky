@@ -99,5 +99,8 @@ jobs:
         with:
           name: Slinky ${{ github.ref_name }}
           body_path: RELEASE-NOTES.md
-          generate_release_notes: true
+          generate_release_notes: false
           files: release-assets/*
+        # generate_release_notes false on purpose: on v2 it REPLACED the curated
+        # body_path content with the auto changelog (observed on v1.0.4). The
+        # curated file carries the full notes; RELEASE-NOTES.md stays the source.
