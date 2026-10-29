@@ -25,11 +25,11 @@ Este documento é o checklist de execução da revisão dos problemas levantados
 ## Acessibilidade e qualidade visual
 
 - [x] **10. Contraste:** testes para superfície, texto com opacidade efetiva e accent; opacidades ajustadas para cumprir AA.
-- [ ] **11. Indicador de foco:** alternativa ao foco nativo implementada e incluída em `SMOKE-UI.md`; falta confirmar visualmente nos cinco temas.
+- [x] **11. Indicador de foco:** confirmado visualmente nos cinco temas em 29/10/2026 — com correção: o indicador original (borda da `TextBox`) era sobrescrito pelos visual states e nunca renderizava; substituído por `Rectangle` dedicado (`FocusUnderline`) que aparece só com foco de teclado. Evidência: 1184 pixels accent por tema na faixa inferior, ver `SMOKE-TESTES-2026-10-28.md` (seção 29/10).
 
 ## Build, documentação e higiene
 
-- [x] Corrigir `PublishProfiles` ignorados ou remover a dependência de perfis locais; perfis versionados e exceção incluída no `.gitignore` raiz. A validação em clone limpo permanece no critério de conclusão.
+- [x] Corrigir `PublishProfiles` ignorados ou remover a dependência de perfis locais; perfis versionados e exceção incluída no `.gitignore` raiz. Validado em clone limpo (`file://` de `dbff66a`) em 29/10/2026: 3 perfis presentes, build Release x64 com 0 erros.
 - [x] Mesclar regras úteis de `Slinky/gitignore` no `.gitignore` raiz e remover o arquivo sem efeito.
 - [x] Limpar entradas obsoletas do `.csproj` e conferir assets do manifest com build MSIX: entradas `None Remove` mortas de `BadgeLogo` removidas, `LockScreenLogo.scale-200.png` (não referenciado pelo manifesto) e `StoreLogo.backup.png` excluídos; rebuild MSIX x64 confirmou todos os logos referenciados presentes no pacote e o lixo ausente.
 - [x] Corrigir comentários/documentação desatualizados, incluindo `ThemeService`, versão mínima do Visual Studio e modo Unpackaged.
@@ -44,5 +44,5 @@ Este documento é o checklist de execução da revisão dos problemas levantados
 - [x] Build Release do app aprovado para pelo menos x64, sem depender de arquivos ignorados.
 - [x] Build/publicação com trimming aprovado ou trimming removido deliberadamente: produção fica sem trimming por usar JSON baseado em reflexão (`PublishTrimmed=False` no `.csproj`); CI mantém build trimmed apenas como diagnóstico.
 - [x] Testes de persistência, concorrência, contraste e paginação executados.
-- [x] Smoke test UI: parte automatizável executada em 28/10 via UIA, com 15 PASS registrados em `SMOKE-TESTES-2026-10-28.md` (incluindo recovery após kill e os cinco temas); seguem manuais: zoom numpad, cliques de mouse, diálogos de arquivo/impressão e a verificação visual de contraste/indicador de foco (item 11 de acessibilidade).
+- [x] Smoke test UI executado em 28–29/10/2026: roteiro de `SMOKE-UI.md` coberto por automação (UIA + SendInput + capturas de tela) e verificação visual por pixel — digitação, cliques, busca, atalhos (incl. numpad), diálogos nativos abrir/cancelar, isolamento de processos, recovery pós-kill determinístico e cinco temas com indicador de foco. Registros completos em `SMOKE-TESTES-2026-10-28.md`.
 - [x] Commits separados por grupo funcional, com documentação atualizada e `git status` revisado.

@@ -99,3 +99,42 @@ tela, nenhuma entrada nova no `crash.log` e `Esc` preservando aba e conteúdo.
   completo) ficou marcada como PASS parcial: snapshots de processos distintos
   coexistiram e todos foram restaurados, mas o cenário "B vivo enquanto A restaura"
   não foi exercitado de forma determinística.
+
+## Continuação — 29/10/2026: cenários restantes do roteiro
+
+Executados com `SendInput` (cliques/teclas reais) + UIA + capturas de tela
+(`PrintWindow`/`CopyFromScreen`) analisadas por pixel. Mesmo app instalado, pacote
+recompilado após a correção do indicador de foco (abaixo).
+
+| Cenário (`SMOKE-UI.md`) | Resultado | Evidência |
+|---|---|---|
+| 1.2 Clique posiciona o caret (linha 2, digitar `X`) | PASS | 'X' inserido no ponto clicado ('meio Xda linha dois') |
+| 1.3 Duplo clique seleciona só a palavra | PASS | `Ctrl+C` após duplo clique devolveu 'palavra ' (apenas a palavra clicada, com o separador) |
+| 1.4 Clique na área abaixo da última linha | PASS | foco no editor sem alterar linhas; digitação segue normalmente |
+| 4. Zoom numpad `Ctrl+Add`, `Ctrl+Subtract`, `Ctrl+NumPad0` | PASS | teclas VK reais via `SendInput`; processo vivo e editor editável após cada variante |
+| 4. `Ctrl+O` abre "Abrir" e cancela | PASS | diálogo nativo aberto; `Esc` fecha; conteúdo preservado |
+| 4. `Ctrl+S` em nota suja abre "Salvar como" e cancela | PASS | idem |
+| 4. `Ctrl+Shift+S` abre "Salvar como" e cancela | PASS | idem |
+| 4. `Ctrl+P` abre "Configurações de impressão" e cancela | PASS | idem |
+| 5.5 Recovery determinístico com duas janelas | PASS | A e B com autosave próprio; kill de A; relançamento restaurou **somente** 'RECOVERY-JANELA-A'; B intacto; snapshot de A consumido uma única vez (arquivo removido do disco; prompt seguinte era o snapshot legítimo do processo C morto, timestamp distinto) |
+| PublishProfiles em clone limpo | PASS | clone `file://` do `dbff66a`: 3 perfis presentes, exceção `.gitignore` linha 190, build Release x64 com 0 erros |
+| 6. Paletas dos cinco temas | PASS | fundo do editor pixel-exato contra `ThemePalette`: `FFFFFF`, `F4ECD8`, `1E1E1E`, `10263B`, `282A36`; textos legíveis nas capturas |
+| 11. Indicador de foco por teclado nos cinco temas | PASS após correção | ver defeito abaixo |
+
+### Defeito descoberto e corrigido: indicador de foco não renderizava
+
+Nas capturas dos cinco temas, **zero pixels da cor accent** apareciam com o foco no
+editor via teclado (confirmado por `PrintWindow` e `CopyFromScreen`, tolerância ±12-14
+sobre o accent de `ThemePalette`). Causa raiz: os recursos da `TextBox`
+(`TextControlBorderBrushFocused=Transparent`, `TextControlBorderThemeThicknessFocused=0`)
+são reaplicados pelo visual state Focused e **sobrescrevem** `BorderBrush`/
+`BorderThickness` definidos no próprio controle pelo handler `NoteEditor_GotFocus` —
+o indicador nunca ficava visível. Correção: `Rectangle` dedicado (`FocusUnderline`,
+2px, `Theme.Accent`, `IsHitTestVisible=False`) exibido só quando
+`FocusState == Keyboard` e ocultado no `LostFocus`. Pós-fix: 1184 pixels accent por
+tema, na faixa y=614-615 (linha de 2px quase na largura total), nos cinco temas.
+72/72 testes; app reinstalado com a correção.
+
+Observações de automação (sem impacto no app): o `WScript.SendKeys` não envia teclas
+numpad (por isso `SendInput`/VK diretos) e o texto ganhou autocorreção do `TextBox`
+('tres'→'três') durante a digitação — comportamento nativo do controle.

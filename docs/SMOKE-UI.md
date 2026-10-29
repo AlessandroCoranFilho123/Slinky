@@ -60,3 +60,4 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 | Data | Versão do Windows | Arquitetura | Commit/pacote | Resultado | Falhas e evidências |
 |---|---|---|---|---|---|
 | 28/10/2026 | 10.0.19045 | x64 | pacote `…_1xsa4dc8b90qj` (dev, commits até `68a0f52`) | Executado em parte (automação UIA) | 15 PASS; zoom numpad e cenários visuais/manuais pendentes; defeito `Ctrl+W` com diálogo aberto — ver `SMOKE-TESTES-2026-10-28.md` |
+| 29/10/2026 | 10.0.19045 | x64 | pacote dev pós-fix de foco | Roteiro completo (UIA + SendInput + capturas) | Clipes/numpad/diálogos/recovery 5.5/paletas PASS; indicador de foco não renderizava — corrigido com `FocusUnderline` e revalidado nos cinco temas — ver `SMOKE-TESTES-2026-10-28.md` (seção 29/10) |
