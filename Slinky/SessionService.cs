@@ -25,7 +25,14 @@ namespace Slinky.Services
         private static string SessionFileName => $"session-{Environment.ProcessId}.json";
         private static string TemporarySessionFileName => $"session-{Environment.ProcessId}.json.tmp";
         private static readonly SemaphoreSlim Gate = new(1, 1);
-        private static readonly List<string> CurrentTokens = new();
+        private static readonly Dictionary<string, string> PathToToken = new(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// The FutureAccessList token currently held for this path, or null. Used by the
+        /// recovery snapshot writer so a restored note can be reattached to its file.
+        /// </summary>
+        public static string? TokenForPath(string? path)
+            => path is not null && PathToToken.TryGetValue(path, out var token) ? token : null;
 
         /// <summary>Call whenever the set of open, file-backed tabs changes (a tab opens or closes).</summary>
         public static async Task SaveOpenFilesAsync(IEnumerable<StorageFile> openFiles)
@@ -35,11 +42,11 @@ namespace Slinky.Services
             {
                 var tokens = new List<string>();
 
-                foreach (var oldToken in CurrentTokens)
+                foreach (var oldToken in PathToToken.Values)
                 {
                     try { StorageApplicationPermissions.FutureAccessList.Remove(oldToken); } catch { }
                 }
-                CurrentTokens.Clear();
+                PathToToken.Clear();
 
                 foreach (var file in openFiles)
                 {
@@ -47,7 +54,7 @@ namespace Slinky.Services
                     {
                         var token = StorageApplicationPermissions.FutureAccessList.Add(file, file.Path);
                         tokens.Add(token);
-                        CurrentTokens.Add(token);
+                        PathToToken[file.Path] = token;
                     }
                     catch
                     {
@@ -114,7 +121,7 @@ namespace Slinky.Services
 
                     await sessionFile.DeleteAsync();
                 }
-                CurrentTokens.Clear();
+                PathToToken.Clear();
             }
             catch
             {

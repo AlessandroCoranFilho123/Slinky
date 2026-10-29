@@ -46,6 +46,7 @@ public sealed class PersistenceTests
             OwnerProcessId = 1234,
             Text = "linha 1\nlinha 2",
             FilePath = "C:\\temp\\arquivo.txt",
+            FileToken = "token-da-fal",
             SavedAt = DateTime.UtcNow,
             Encoding = TextEncodingKind.Windows1252,
             HasBom = false,
@@ -59,9 +60,30 @@ public sealed class PersistenceTests
         Assert.Equal(snapshot.Text, restored!.Text);
         Assert.Equal(snapshot.OwnerProcessId, restored.OwnerProcessId);
         Assert.Equal(snapshot.FilePath, restored.FilePath);
+        Assert.Equal(snapshot.FileToken, restored.FileToken);
         Assert.Equal(snapshot.Encoding, restored.Encoding);
         Assert.Equal(snapshot.LineEnding, restored.LineEnding);
         Assert.False(RecoverySnapshotCodec.TryDeserialize("not-json", out _));
+
+        // Snapshots de versões antigas (sem token) desserializam com null — o restore
+        // precisa tratar isso como nota sem título, como sempre fez.
+        var legado = @"{""Text"":""x"",""FilePath"":""C:\\x.txt""}";
+        Assert.True(RecoverySnapshotCodec.TryDeserialize(legado, out var antigo));
+        Assert.Null(antigo!.FileToken);
+    }
+
+    [Fact]
+    public void RecoveryReattachPolicy_RequiresTokenAndMatchingPath()
+    {
+        // Sem token (snapshot legado): nunca reconecta.
+        Assert.False(RecoveryReattachPolicy.CanReattach(null, "C:\\x.txt", "C:\\x.txt"));
+        Assert.False(RecoveryReattachPolicy.CanReattach("", "C:\\x.txt", "C:\\x.txt"));
+
+        // Token presente exige que o arquivo resolvido seja o mesmo caminho do snapshot.
+        Assert.True(RecoveryReattachPolicy.CanReattach("tok", "C:\\x.txt", "C:\\x.txt"));
+        Assert.True(RecoveryReattachPolicy.CanReattach("tok", "C:\\X.TXT", "c:\\x.txt"));
+        Assert.False(RecoveryReattachPolicy.CanReattach("tok", "C:\\x.txt", "C:\\y.txt"));
+        Assert.False(RecoveryReattachPolicy.CanReattach("tok", null, "C:\\x.txt"));
     }
 
     [Fact]

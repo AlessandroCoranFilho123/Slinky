@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Windows.Security.Cryptography;
 using Windows.Storage;
+using Windows.Storage.AccessCache;
 using Windows.Storage.Pickers;
 using Slinky; // for App.Window, used by the save picker to know which window to appear over
 using Slinky.Services;
@@ -219,14 +220,49 @@ namespace Slinky.Models
         /// <summary>Restores text recovered from a previous, uncleanly-closed session.</summary>
         public void RestoreFromSnapshot(RecoverySnapshot snapshot)
         {
-            // We only recover the text, not the file link: reconnecting to snapshot.FilePath would
-            // need StorageFile.GetFileFromPathAsync, which needs broad filesystem access this app
-            // doesn't request. "Salvar como" reconnects it to a real file if the user wants that.
             Text = snapshot.Text;
             EncodingKind = snapshot.Encoding;
             HasBom = snapshot.HasBom;
             LineEnding = snapshot.LineEnding;
             IsDirty = true;
+        }
+
+        /// <summary>
+        /// Reattaches recovered text to its original file via the FutureAccessList token
+        /// captured in the snapshot, so a later Ctrl+S writes to the same document instead
+        /// of forcing "Salvar como" — matching the modern Notepad recovery model. Returns
+        /// false when there is no token, the token no longer resolves, or the resolved
+        /// file is not the snapshot's path; the note then stays untitled.
+        /// </summary>
+        public async Task<bool> TryReattachSavedFileAsync(RecoverySnapshot snapshot)
+        {
+            if (!RecoveryReattachPolicy.CanReattach(snapshot.FileToken, snapshot.FilePath, snapshot.FilePath ?? string.Empty))
+            {
+                return false;
+            }
+
+            try
+            {
+                var reattached = await StorageApplicationPermissions.FutureAccessList.GetFileAsync(snapshot.FileToken!);
+                if (!RecoveryReattachPolicy.CanReattach(snapshot.FileToken, snapshot.FilePath, reattached.Path))
+                {
+                    return false;
+                }
+
+                File = reattached;
+                EncodingKind = snapshot.Encoding;
+                HasBom = snapshot.HasBom;
+                LineEnding = snapshot.LineEnding;
+                IsDirty = true;
+                await RecentFilesService.AddAsync(reattached);
+                return true;
+            }
+            catch
+            {
+                // Token expired, removed by a session rewrite, or file moved/deleted since:
+                // the note stays untitled with the recovered text, as in previous versions.
+                return false;
+            }
         }
 
         /// <summary>Restarts (debounced) after every edit; only the last edit in a ~2s burst actually hits disk.</summary>
@@ -283,6 +319,7 @@ namespace Slinky.Models
                     OwnerProcessId = Environment.ProcessId,
                     Text = Text,
                     FilePath = File?.Path,
+                    FileToken = File is null ? null : SessionService.TokenForPath(File.Path),
                     SavedAt = DateTime.Now,
                     Encoding = EncodingKind,
                     HasBom = HasBom,

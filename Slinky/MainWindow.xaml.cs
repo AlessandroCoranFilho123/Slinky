@@ -244,6 +244,7 @@ namespace Slinky
                 {
                     var note = new Note();
                     note.RestoreFromSnapshot(snapshot);
+                    await note.TryReattachSavedFileAsync(snapshot);
                     AddNoteTab(note);
 
                     if (!string.IsNullOrEmpty(snapshot.FilePath))
