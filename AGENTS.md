@@ -59,7 +59,7 @@ dotnet build Slinky/Slinky.csproj -c Release --no-restore \
   -p:PublishTrimmed=false -p:WindowsAppSDKSelfContained=true \
   -p:AppxPackageSigningEnabled=true \
   -p:PackageCertificateThumbprint=307E3EC24E852C4588156FDB999433A1CCC11BC0
-# Saída: Slinky/AppPackages/Slinky_1.0.0.0_Test/*.msixbundle
+# Saída: Slinky/AppPackages/Slinky_1.0.3.0_Test/*.msixbundle
 ```
 
 Instalação e lançamento (PowerShell) — leia [`docs/INSTALACAO-MSIX.md`](docs/INSTALACAO-MSIX.md)
@@ -73,13 +73,20 @@ Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90
 Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 `PRI249 DESKTOP-EVENTLOG-INSTRUMENTATION`.
 
-## Estado atual (28/10/2026)
+## Estado atual (29/10/2026)
 
-- Checklist da auditoria (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): todo o código e
-  validação automatizada concluídos. Falta apenas executar visualmente o roteiro
-  `docs/SMOKE-UI.md` e registrar os resultados.
+- Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
+  incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
+  defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
+- Versão atual: **1.0.3.0** (release `v1.0.3` no GitHub; anterior v1.0.2).
+- O `.csproj` usa **referências granulares do Windows App SDK** (WinUI + Runtime +
+  DWrite), sem AI/ML/Widgets — não voltar ao metapacote (~40 MB de payload não
+  usado). Fundamento e números: `docs/DESEMPENHO-E-TAMANHO.md`.
+- Linha de base de desempenho (máquina local): CPU ociosa 0%, Private Working Set
+  ~51 MB, partida aquecida ~0,4 s até janela / ~0,65 s até editor; 204 MB
+  instalados (self-contained). Metas do roteiro de otimização atendidas.
 - Pacote instalado nesta máquina:
-  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.0.0_x64__1xsa4dc8b90qj`
+  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.3.0_x64__1xsa4dc8b90qj`
   (publisher `CN=Alessandro`, assinatura Developer). O AUMID da seção anterior
   corresponde a essa família.
 - Histórico e causas raiz dos erros de instalação: `docs/INSTALACAO-MSIX.md`.
@@ -105,4 +112,5 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 | [`docs/INSTALACAO-MSIX.md`](docs/INSTALACAO-MSIX.md) | Erros de MSIX: causas raiz, evidências e receita de instalação verificada |
 | [`docs/SMOKE-UI.md`](docs/SMOKE-UI.md) | Roteiro de smoke test visual a executar no app instalado |
 | [`docs/SMOKE-TESTES-2026-10-22.md`](docs/SMOKE-TESTES-2026-10-22.md) | Registro da tentativa de 22/10 e dos bloqueios da época |
-| [`docs/SMOKE-TESTES-2026-10-28.md`](docs/SMOKE-TESTES-2026-10-28.md) | Registro de 28/10: testes, build, MSIX, instalação e lançamento |
+| [`docs/SMOKE-TESTES-2026-10-28.md`](docs/SMOKE-TESTES-2026-10-28.md) | Registro de 28–29/10: testes, build, MSIX, instalação e lançamento |
+| [`docs/DESEMPENHO-E-TAMANHO.md`](docs/DESEMPENHO-E-TAMANHO.md) | Medições de CPU/RAM/partida/tamanho, experimentos (FDD, GC) e decisões |
