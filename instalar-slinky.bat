@@ -152,12 +152,12 @@ if "%SIGN_PACKAGE%"=="1" (
     set "INSTALL_SCRIPT=!PACKAGE_DIR!Add-AppDevPackage.ps1"
     if exist "!INSTALL_SCRIPT!" (
         del /q "!PACKAGE_DIR!*.cer" >nul 2>&1
-        copy /y "%CERT_PUBLIC_FILE%" "!PACKAGE_DIR!Slinky_1.0.3.0_x64.cer" >nul
+        copy /y "%CERT_PUBLIC_FILE%" "!PACKAGE_DIR!Slinky_1.0.4.0_x64.cer" >nul
         if errorlevel 1 goto failed
         set "SLINKY_CERT_PUBLIC_FILE=%CERT_PUBLIC_FILE%"
         powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; foreach($store in @('TrustedPeople','Root')) { $process = Start-Process -FilePath 'certutil.exe' -Verb RunAs -ArgumentList @('-addstore', $store, $env:SLINKY_CERT_PUBLIC_FILE) -Wait -PassThru; if($process.ExitCode -ne 0) { exit $process.ExitCode } }"
         if errorlevel 1 goto failed
-        powershell.exe -NoProfile -ExecutionPolicy Bypass -File "!INSTALL_SCRIPT!" -Force -SkipLoggingTelemetry -CertificatePath "!PACKAGE_DIR!Slinky_1.0.3.0_x64.cer"
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -File "!INSTALL_SCRIPT!" -Force -SkipLoggingTelemetry -CertificatePath "!PACKAGE_DIR!Slinky_1.0.4.0_x64.cer"
     ) else (
         set "SLINKY_CERT_PUBLIC_FILE=%CERT_PUBLIC_FILE%"
         powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $null = Import-Certificate -FilePath $env:SLINKY_CERT_PUBLIC_FILE -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople'; Add-AppxPackage -Path $env:SLINKY_PACKAGE -ForceApplicationShutdown -ForceUpdateFromAnyVersion"
