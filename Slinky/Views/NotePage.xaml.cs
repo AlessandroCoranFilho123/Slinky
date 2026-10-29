@@ -62,19 +62,19 @@ namespace Slinky.Views
         /// Restores a visible focus indicator for keyboard (Tab) navigation only — the
         /// TextControlBorderBrushFocused override above intentionally silences it for clicks
         /// (see NotePageRoot_Tapped), but a Tab-only user still needs to see where focus is.
+        /// The indicator is a dedicated Rectangle because the TextBox visual states override
+        /// BorderBrush/BorderThickness set on the control itself while it is focused.
         /// </summary>
         private void NoteEditor_GotFocus(object sender, RoutedEventArgs e)
         {
-            if (NoteEditor.FocusState == FocusState.Keyboard)
-            {
-                NoteEditor.BorderThickness = new Thickness(0, 0, 0, 2);
-                NoteEditor.BorderBrush = Theme.Accent;
-            }
+            FocusUnderline.Visibility = NoteEditor.FocusState == FocusState.Keyboard
+                ? Visibility.Visible
+                : Visibility.Collapsed;
         }
 
         private void NoteEditor_LostFocus(object sender, RoutedEventArgs e)
         {
-            NoteEditor.BorderThickness = new Thickness(0);
+            FocusUnderline.Visibility = Visibility.Collapsed;
         }
 
         /// <summary>

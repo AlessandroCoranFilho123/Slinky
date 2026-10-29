@@ -106,5 +106,17 @@
             </TextBox.Resources>
         </TextBox>
 
+        <!-- Keyboard focus indicator: a dedicated element, because the TextBox visual
+             states force TextControlBorderBrushFocused/BorderThemeThicknessFocused over
+             any border set on the control itself. Shown only for keyboard focus. -->
+        <Rectangle x:Name="FocusUnderline"
+                   Grid.Row="2"
+                   Height="2"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Bottom"
+                   Fill="{x:Bind Theme.Accent, Mode=OneWay}"
+                   Visibility="Collapsed"
+                   IsHitTestVisible="False"/>
+
     </Grid>
 </Page>
