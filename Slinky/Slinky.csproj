@@ -12,6 +12,7 @@
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>en;pt-BR</SatelliteResourceLanguages>
   </PropertyGroup>
   <!--
     AppIcon.ico is loaded at runtime by WindowIconService and must ship beside the
@@ -53,7 +54,16 @@
   </PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.250916003" />
+		<!--
+		  Granular WindowsAppSDK references instead of the metapackage: the app uses
+		  WinUI (which pulls Base/Foundation/InteractiveExperiences), the self-contained
+		  runtime payload and DWriteCore. Excluding Microsoft.WindowsAppSDK.AI/ML/Widgets
+		  keeps onnxruntime.dll, DirectML.dll and widget projections out of the package
+		  (~40 MB) without touching any feature this editor uses.
+		-->
+		<PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.250906003" />
+		<PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="1.8.250916003" />
+		<PackageReference Include="Microsoft.WindowsAppSDK.DWrite" Version="1.8.25090401" />
 	</ItemGroup>
 
 </Project>
