@@ -27,11 +27,14 @@ instalado (`Add-AppxPackage` — ver `docs/INSTALACAO-MSIX.md`), PowerShell 5.1
 | `encodings.ps1` | Round-trip byte-exato de UTF-8/±BOM/UTF-16 LE/BE/1252/emoji/mistos/vazio | **manual** |
 | `stress.ps1` | 100 abas, 300 edições/undos, buscas e alternâncias, com amostragem de memória/handles | **manual** |
 
-**Por que os scripts de UI são manuais**: eles dependem de sleep/cadência (ativação
-MSIX pós-kill exige ~10 s de cooldown; diálogos nativos não expõem campos via UIA;
-a ordem da árvore varia). A cobertura determinística dos mesmos fluxos virá da
-camada headless quando os serviços aceitarem pasta de estado injetada (ver
-auditoria de concorrência). O `run-all.ps1` executa apenas o determinístico.
+**Por que os scripts de UI são manuais**: dois problemas conhecidos, nenhum do
+aplicativo — (1) a reativação MSIX logo após um `Stop-Process -Force` falha
+silenciosamente de forma intermitente (cooldown não determinístico; 2 s e 10 s
+ambos já falharam, e o mesmo launch manual funciona em seguida); (2) diálogos
+nativos não expõem campos via UIA e a ordem da árvore varia. O fluxo de recovery
+em si está validado por diagnósticos controlados e pelos testes de integração
+(`Slinky.IntegrationTests`), que executam os mesmos serviços de forma
+determinística contra pasta real isolada.
 | `run-all.ps1` | Comando único: testes headless + smoke E2E |
 
 Uso: `powershell -ExecutionPolicy Bypass -File Tests\automation\run-all.ps1`
