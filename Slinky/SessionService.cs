@@ -62,7 +62,7 @@ namespace Slinky.Services
                     }
                 }
 
-                var folder = ApplicationData.Current.LocalFolder;
+                var folder = await StateFolders.LocalFolderProvider();
                 var temporaryFile = await folder.CreateFileAsync(TemporarySessionFileName, CreationCollisionOption.ReplaceExisting);
                 await FileIO.WriteTextAsync(temporaryFile, SessionStateCodec.Serialize(tokens));
                 await temporaryFile.MoveAsync(folder, SessionFileName, NameCollisionOption.ReplaceExisting);
@@ -89,7 +89,7 @@ namespace Slinky.Services
 
             try
             {
-                var folder = ApplicationData.Current.LocalFolder;
+                var folder = await StateFolders.LocalFolderProvider();
                 var files = await folder.GetFilesAsync();
                 var candidates = files
                     .Where(file => IsSessionFile(file.Name) && !IsOwnedByLiveProcess(file.Name))

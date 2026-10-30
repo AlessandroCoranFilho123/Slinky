@@ -18,7 +18,7 @@ namespace Slinky.Services
         private static readonly SemaphoreSlim Gate = new(1, 1);
 
         public static async Task<StorageFolder> GetRecoveryFolderAsync() =>
-            await ApplicationData.Current.LocalFolder.CreateFolderAsync(FolderName, CreationCollisionOption.OpenIfExists);
+            await (await StateFolders.LocalFolderProvider()).CreateFolderAsync(FolderName, CreationCollisionOption.OpenIfExists);
 
         public static async Task SaveSnapshotAsync(Guid recoveryId, RecoverySnapshot snapshot)
         {

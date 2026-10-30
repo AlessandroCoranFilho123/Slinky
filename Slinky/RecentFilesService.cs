@@ -52,7 +52,7 @@ namespace Slinky.Services
 
         private static async Task<List<RecentFileEntry>> LoadCoreAsync()
         {
-            var folder = ApplicationData.Current.LocalFolder;
+            var folder = await StateFolders.LocalFolderProvider();
             if (await folder.TryGetItemAsync(SettingsFileName) is not StorageFile file)
             {
                 return new List<RecentFileEntry>();
@@ -64,7 +64,7 @@ namespace Slinky.Services
 
         private static async Task SaveCoreAsync(List<RecentFileEntry> entries)
         {
-            var folder = ApplicationData.Current.LocalFolder;
+            var folder = await StateFolders.LocalFolderProvider();
             var temporaryFile = await folder.CreateFileAsync(TemporarySettingsFileName, CreationCollisionOption.ReplaceExisting);
             await FileIO.WriteTextAsync(temporaryFile, System.Text.Json.JsonSerializer.Serialize(entries));
             await temporaryFile.MoveAsync(folder, SettingsFileName, NameCollisionOption.ReplaceExisting);
