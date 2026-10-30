@@ -91,6 +91,14 @@ namespace Slinky.Services
             {
                 var folder = await StateFolders.LocalFolderProvider();
                 var files = await folder.GetFilesAsync();
+
+                // Startup-only path: leftover .tmp files mean a process died between
+                // the write and the atomic replace — never usable, just cleanup.
+                foreach (var file in files.Where(f => f.Name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)))
+                {
+                    try { await file.DeleteAsync(); } catch { }
+                }
+
                 var candidates = files
                     .Where(file => IsSessionFile(file.Name) && !IsOwnedByLiveProcess(file.Name))
                     .OrderByDescending(file => file.DateCreated);

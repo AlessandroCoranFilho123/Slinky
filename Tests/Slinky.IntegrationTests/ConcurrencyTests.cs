@@ -118,6 +118,38 @@ namespace Slinky.IntegrationTests
         }
 
         [Fact]
+        public async Task StartupCleansOrphanTmpFilesAndKeepsValidSnapshots_R5()
+        {
+            // R5: .tmp órfãos (processo morreu entre a escrita e o Move) são lixo;
+            // os snapshots válidos ao lado devem permanecer intocados.
+            var recovery = Directory.CreateDirectory(Path.Combine(_directory, "Recovery"));
+            File.WriteAllText(Path.Combine(recovery.FullName, "valida.json"), "{\"Text\":\"vale\"}");
+            File.WriteAllText(Path.Combine(recovery.FullName, "329a.json.abcdef123456.tmp"), "{\"Text\":\"lixo\"}");
+            File.WriteAllText(Path.Combine(recovery.FullName, "outro.json.fedcba654321.tmp"), "lixo parcial");
+
+            var leftovers = await RecoveryService.FindLeftoverSnapshotsAsync();
+
+            Assert.Empty(Directory.GetFiles(recovery.FullName, "*.tmp"));
+            Assert.True(File.Exists(Path.Combine(recovery.FullName, "valida.json")));
+            // A valid snapshot with a live-owner pid is not a leftover; one with a
+            // dead pid would be — the text here has no live owner, so it is offered.
+            Assert.Contains(leftovers, l => l.Snapshot.Text == "vale");
+        }
+
+        [Fact]
+        public async Task SessionStartupCleansOrphanTmpAndKeepsDeadPidSessions()
+        {
+            File.WriteAllText(Path.Combine(_directory, "session-999999.json.tmp"), "[]");
+            File.WriteAllText(Path.Combine(_directory, "session-999999.json"), "[\"token-morto\"]");
+
+            var lidos = await SessionService.LoadAndClearAsync();
+
+            Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
+            Assert.False(File.Exists(Path.Combine(_directory, "session-999999.json"))); // consumida
+            Assert.Empty(lidos); // token morto: GetFileAsync falha e é ignorado
+        }
+
+        [Fact]
         public async Task SessionSaveAndLoad_ConsumesSessionAndCleansTmp()
         {
             // F4: a sessão grava tmp + Move (atômico); a leitura consome somente

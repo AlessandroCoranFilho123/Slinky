@@ -106,6 +106,15 @@ namespace Slinky.Services
 
             foreach (var file in files)
             {
+                // Startup-only path: a leftover .tmp means a process died between the
+                // write and the atomic replace — the payload never reached the real
+                // snapshot, so it is garbage and would only pollute the folder.
+                if (file.Name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
+                {
+                    try { await file.DeleteAsync(); } catch { }
+                    continue;
+                }
+
                 try
                 {
                     var json = await FileIO.ReadTextAsync(file);
