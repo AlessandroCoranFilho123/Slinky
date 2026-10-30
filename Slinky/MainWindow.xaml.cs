@@ -107,9 +107,23 @@ namespace Slinky
             if (Microsoft.UI.Windowing.AppWindowTitleBar.IsCustomizationSupported())
             {
                 var buttonColor = ThemeService.Instance.ElementTheme == ElementTheme.Light ? Colors.Black : Colors.White;
+                // Caption buttons keep drawing over the app-drawn title bar, so their
+                // backgrounds must be transparent and the hover/pressed tints must
+                // contrast with the ACTIVE palette — otherwise they follow the system
+                // theme and a dark Windows leaves dark hover boxes on the light title bar.
+                var hoverTint = ThemeService.Instance.ElementTheme == ElementTheme.Light
+                    ? Windows.UI.Color.FromArgb(26, 0, 0, 0)
+                    : Windows.UI.Color.FromArgb(26, 255, 255, 255);
+                var pressedTint = ThemeService.Instance.ElementTheme == ElementTheme.Light
+                    ? Windows.UI.Color.FromArgb(51, 0, 0, 0)
+                    : Windows.UI.Color.FromArgb(51, 255, 255, 255);
+                AppWindow.TitleBar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
+                AppWindow.TitleBar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
                 AppWindow.TitleBar.ButtonForegroundColor = buttonColor;
                 AppWindow.TitleBar.ButtonHoverForegroundColor = buttonColor;
                 AppWindow.TitleBar.ButtonPressedForegroundColor = buttonColor;
+                AppWindow.TitleBar.ButtonHoverBackgroundColor = hoverTint;
+                AppWindow.TitleBar.ButtonPressedBackgroundColor = pressedTint;
             }
 
             UpdateTabViewThemeResources();
