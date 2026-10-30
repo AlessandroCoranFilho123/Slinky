@@ -26,7 +26,10 @@
   </Dependencies>
 
   <Resources>
-    <Resource Language="x-generate"/>
+    <!-- pt-BR first: the whole UI is hardcoded pt-BR; en-US is the fallback for
+         framework strings (TextBox context menu) on non-Brazilian systems. -->
+    <Resource Language="pt-BR"/>
+    <Resource Language="en-US"/>
   </Resources>
 
   <Applications>

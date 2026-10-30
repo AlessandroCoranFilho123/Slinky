@@ -13,6 +13,9 @@
     <Nullable>enable</Nullable>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <SatelliteResourceLanguages>en;pt-BR</SatelliteResourceLanguages>
+    <!-- The whole UI is hardcoded pt-BR; without this the PRI/appx default to
+         en-US and the framework's TextBox context menu renders in English. -->
+    <DefaultLanguage>pt-BR</DefaultLanguage>
   </PropertyGroup>
   <!--
     AppIcon.ico is loaded at runtime by WindowIconService and must ship beside the
