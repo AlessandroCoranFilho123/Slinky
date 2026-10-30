@@ -64,8 +64,7 @@ namespace Slinky.Services
         }
 
         /// <summary>Whether the *system* chrome (native checkmarks, dialogs, etc.) should run Light or Dark.</summary>
-        public ElementTheme ElementTheme =>
-            Current is AppTheme.LightDefault or AppTheme.LightYellowish ? ElementTheme.Light : ElementTheme.Dark;
+        public ElementTheme ElementTheme => ThemePalette.IsDark(Current) ? ElementTheme.Dark : ElementTheme.Light;
 
         private const string ThemeSettingsKey = "Theme";
 

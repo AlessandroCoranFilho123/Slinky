@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.IO;
+using Slinky.Services;
 using Windows.Storage;
 
 namespace Slinky
@@ -79,13 +80,14 @@ namespace Slinky
             {
                 try
                 {
-                    var dialog = new ContentDialog
-                    {
-                        XamlRoot = root.XamlRoot,
-                        Title = "Ocorreu um erro inesperado",
-                        Content = "O erro foi registrado em crash.log. Algumas operações podem não estar disponíveis; salve seu trabalho e reinicie o Slinky.",
-                        CloseButtonText = "OK"
-                    };
+                var dialog = new ContentDialog
+                {
+                    XamlRoot = root.XamlRoot,
+                    Title = "Ocorreu um erro inesperado",
+                    Content = "O erro foi registrado em crash.log. Algumas operações podem não estar disponíveis; salve seu trabalho e reinicie o Slinky.",
+                    CloseButtonText = "OK",
+                    RequestedTheme = ThemeService.Instance.ElementTheme
+                };
                     await dialog.ShowAsync();
                 }
                 catch

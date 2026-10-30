@@ -236,6 +236,9 @@ namespace Slinky.Models
                 {
                     await File.DeleteAsync();
                 }
+                // The user explicitly confirmed discarding this note's content, so a
+                // later close must not prompt "unsaved changes" over a deleted file.
+                IsDirty = false;
                 LastError = null;
                 return true;
             }

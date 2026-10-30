@@ -209,7 +209,8 @@ namespace Slinky.Views
                     : $"Isso vai apagar \"{file.Name}\" do disco definitivamente. Continuar?",
                 PrimaryButtonText = "Excluir",
                 CloseButtonText = "Cancelar",
-                DefaultButton = ContentDialogButton.Close
+                DefaultButton = ContentDialogButton.Close,
+                RequestedTheme = Theme.ElementTheme
             };
 
             var result = await dialog.ShowAsync();
@@ -234,7 +235,8 @@ namespace Slinky.Views
                 XamlRoot = this.XamlRoot,
                 Title = title,
                 Content = message,
-                CloseButtonText = "OK"
+                CloseButtonText = "OK",
+                RequestedTheme = Theme.ElementTheme
             };
             await dialog.ShowAsync();
         }
@@ -425,16 +427,23 @@ namespace Slinky.Views
 
             var comparison = MatchCaseCheckBox.IsChecked == true ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
             var replacement = ReplaceTextBox.Text;
-            var original = NoteEditor.Text;
 
-            var (result, count) = TextSearch.ReplaceAll(original, term, replacement, comparison);
-
-            if (count > 0)
+            // Aplicar de trás para frente via SelectedText preserva o undo nativo do
+            // TextBox; atribuir Text = resultado zeraria o histórico (Ctrl+Z inútil).
+            var positions = TextSearch.FindAll(NoteEditor.Text, term, comparison);
+            if (positions.Count == 0)
             {
-                NoteEditor.Text = result; // NoteEditor_TextChanged mirrors this into noteModel.Text
+                FindStatusText.Text = "Não encontrado";
+                return;
             }
 
-            FindStatusText.Text = count == 0 ? "Não encontrado" : $"{count} substituição(ões) feita(s)";
+            for (int i = positions.Count - 1; i >= 0; i--)
+            {
+                NoteEditor.Select(positions[i], term.Length);
+                NoteEditor.SelectedText = replacement;
+            }
+
+            FindStatusText.Text = $"{positions.Count} substituição(ões) feita(s)";
         }
     }
 }

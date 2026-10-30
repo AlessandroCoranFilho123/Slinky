@@ -20,7 +20,7 @@ namespace Slinky.Services
     {
         public static ThemeTabState For(AppTheme theme) => new(
             theme,
-            theme is not AppTheme.LightDefault and not AppTheme.LightYellowish,
+            ThemePalette.IsDark(theme),
             ThemePalette.Background(theme),
             ThemePalette.Foreground(theme),
             ThemePalette.Surface(theme),

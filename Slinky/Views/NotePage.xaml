@@ -48,14 +48,17 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="FindTextBox" Grid.Column="0" PlaceholderText="Localizar"
+                <TextBox x:Name="FindTextBox" Grid.Column="0" PlaceholderText="Localizar" AutomationProperties.Name="Localizar"
                          TextChanged="FindTextBox_TextChanged" KeyDown="FindBar_KeyDown"/>
-                <TextBlock x:Name="FindStatusText" Grid.Column="1" VerticalAlignment="Center"
+                <CheckBox x:Name="MatchCaseCheckBox" Grid.Column="1" Content="Maiúsc/minúsc" VerticalAlignment="Center"
+                          Checked="FindOption_Changed" Unchecked="FindOption_Changed"/>
+                <TextBlock x:Name="FindStatusText" Grid.Column="2" VerticalAlignment="Center"
                            Opacity="0.8" Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"/>
-                <Button x:Name="FindPreviousButton" Grid.Column="2" Content="Anterior" Click="FindPrevious_Click"/>
-                <Button x:Name="FindNextButton" Grid.Column="3" Content="Próximo" Click="FindNext_Click"/>
-                <Button x:Name="CloseFindBarButton" Grid.Column="4" Content="✕" Click="CloseFindBar_Click" AutomationProperties.Name="Fechar busca"/>
+                <Button x:Name="FindPreviousButton" Grid.Column="3" Content="Anterior" Click="FindPrevious_Click"/>
+                <Button x:Name="FindNextButton" Grid.Column="4" Content="Próximo" Click="FindNext_Click"/>
+                <Button x:Name="CloseFindBarButton" Grid.Column="5" Content="✕" Click="CloseFindBar_Click" AutomationProperties.Name="Fechar busca"/>
             </Grid>
 
             <Grid x:Name="ReplaceRow" Grid.Row="1" ColumnSpacing="6" Visibility="Collapsed">
@@ -63,13 +66,10 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="ReplaceTextBox" Grid.Column="0" PlaceholderText="Substituir por"/>
-                <CheckBox x:Name="MatchCaseCheckBox" Grid.Column="1" Content="Maiúsc/minúsc" VerticalAlignment="Center"
-                          Checked="FindOption_Changed" Unchecked="FindOption_Changed"/>
-                <Button x:Name="ReplaceButton" Grid.Column="2" Content="Substituir" Click="Replace_Click"/>
-                <Button x:Name="ReplaceAllButton" Grid.Column="3" Content="Substituir tudo" Click="ReplaceAll_Click"/>
+                <TextBox x:Name="ReplaceTextBox" Grid.Column="0" PlaceholderText="Substituir por" AutomationProperties.Name="Substituir por" KeyDown="FindBar_KeyDown"/>
+                <Button x:Name="ReplaceButton" Grid.Column="1" Content="Substituir" Click="Replace_Click"/>
+                <Button x:Name="ReplaceAllButton" Grid.Column="2" Content="Substituir tudo" Click="ReplaceAll_Click"/>
             </Grid>
         </Grid>
 

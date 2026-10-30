@@ -233,7 +233,8 @@ namespace Slinky
                 Content = $"O Slinky parece ter sido fechado sem salvar {leftovers.Count} nota(s) da última vez. Restaurar o conteúdo?",
                 PrimaryButtonText = "Restaurar",
                 CloseButtonText = "Descartar",
-                DefaultButton = ContentDialogButton.Primary
+                DefaultButton = ContentDialogButton.Primary,
+                RequestedTheme = ThemeService.Instance.ElementTheme
             };
 
             var result = await dialog.ShowAsync();
@@ -319,6 +320,12 @@ namespace Slinky
                 return;
             }
 
+            if (FindTabByPath(file.Path) is TabViewItem existente)
+            {
+                NotesTabView.SelectedItem = existente;
+                return;
+            }
+
             var note = new Note();
             if (!await note.OpenAsync(file))
             {
@@ -335,7 +342,13 @@ namespace Slinky
         private void AddNoteTab(Note note, int? insertAtIndex = null)
         {
             var page = new NotePage(note);
-            page.RequestClose += (s, e) => RemoveTab(note);
+            page.RequestClose += async (s, e) =>
+            {
+                if (await ConfirmCloseNoteAsync(note))
+                {
+                    RemoveTab(note);
+                }
+            };
 
             var tabItem = new TabViewItem
             {
@@ -418,6 +431,12 @@ namespace Slinky
 
         private NotePage? GetActiveNotePage() => (NotesTabView.SelectedItem as TabViewItem)?.Content as NotePage;
 
+        /// <summary>Finds the open tab backed by the given path, so re-opening a file focuses it instead of forking a second editable copy.</summary>
+        private TabViewItem? FindTabByPath(string path)
+            => NotesTabView.TabItems.OfType<TabViewItem>()
+                .FirstOrDefault(t => t.Tag is Note n && n.File is not null
+                    && string.Equals(n.File.Path, path, StringComparison.OrdinalIgnoreCase));
+
         private List<Note> GetOpenNotes() => NotesTabView.TabItems.OfType<TabViewItem>()
             .Select(t => t.Tag as Note)
             .Where(n => n is not null)
@@ -444,7 +463,8 @@ namespace Slinky
                 PrimaryButtonText = "Salvar",
                 SecondaryButtonText = "Não salvar",
                 CloseButtonText = "Cancelar",
-                DefaultButton = ContentDialogButton.Primary
+                DefaultButton = ContentDialogButton.Primary,
+                RequestedTheme = ThemeService.Instance.ElementTheme
             };
 
             contentDialogOpen = true;
@@ -595,6 +615,12 @@ namespace Slinky
             var file = await picker.PickSingleFileAsync();
             if (file is null)
             {
+                return;
+            }
+
+            if (FindTabByPath(file.Path) is TabViewItem existente)
+            {
+                NotesTabView.SelectedItem = existente;
                 return;
             }
 
@@ -960,7 +986,8 @@ namespace Slinky
                 XamlRoot = this.Content.XamlRoot,
                 Title = title,
                 Content = message,
-                CloseButtonText = "OK"
+                CloseButtonText = "OK",
+                RequestedTheme = ThemeService.Instance.ElementTheme
             };
             contentDialogOpen = true;
             try

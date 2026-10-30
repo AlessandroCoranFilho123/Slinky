@@ -1,10 +1,30 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Slinky.Services
 {
     public static class TextSearch
     {
+        /// <summary>Returns the start index of every non-overlapping match, in document order.</summary>
+        public static List<int> FindAll(string text, string term, StringComparison comparison)
+        {
+            var positions = new List<int>();
+            if (string.IsNullOrEmpty(term) || string.IsNullOrEmpty(text))
+            {
+                return positions;
+            }
+
+            int index = 0;
+            while ((index = text.IndexOf(term, index, comparison)) != -1)
+            {
+                positions.Add(index);
+                index += term.Length;
+            }
+
+            return positions;
+        }
+
         public static int CountOccurrences(string text, string term, StringComparison comparison)
         {
             if (string.IsNullOrEmpty(term))

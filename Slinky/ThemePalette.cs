@@ -50,5 +50,8 @@ namespace Slinky.Services
             AppTheme.DarkDracula => (0xBD, 0x93, 0xF9),
             _ => (0x00, 0x67, 0xC0)
         };
+
+        /// <summary>Single source of truth for which themes are dark; ThemeService and ThemeTabState both read this.</summary>
+        public static bool IsDark(AppTheme theme) => theme is not (AppTheme.LightDefault or AppTheme.LightYellowish);
     }
 }

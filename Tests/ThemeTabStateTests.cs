@@ -84,5 +84,15 @@ namespace Slinky.Tests
             Assert.Equal(1, updates);
             Assert.False(hub.Unregister(tab));
         }
+
+        [Fact]
+        public void PaletteIsDarkIsTheSingleSourceForLightAndDarkThemes()
+        {
+            Assert.False(ThemePalette.IsDark(AppTheme.LightDefault));
+            Assert.False(ThemePalette.IsDark(AppTheme.LightYellowish));
+            Assert.True(ThemePalette.IsDark(AppTheme.DarkDefault));
+            Assert.True(ThemePalette.IsDark(AppTheme.DarkBluish));
+            Assert.True(ThemePalette.IsDark(AppTheme.DarkDracula));
+        }
     }
 }

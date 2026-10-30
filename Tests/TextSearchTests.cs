@@ -51,5 +51,19 @@ namespace Slinky.Tests
             Assert.Equal("  ", result.Text);
             Assert.Equal(3, result.Count);
         }
+
+        [Fact]
+        public void FindAllReturnsNonOverlappingPositionsInDocumentOrder()
+        {
+            Assert.Equal(new[] { 0, 7 }, TextSearch.FindAll("aba ba aba", "aba", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void FindAllRespectsCaseComparisonAndReturnsEmptyWhenAbsent()
+        {
+            Assert.Equal(new[] { 1 }, TextSearch.FindAll("xXx", "Xx", StringComparison.Ordinal));
+            Assert.Empty(TextSearch.FindAll("xXx", "zz", StringComparison.OrdinalIgnoreCase));
+            Assert.Empty(TextSearch.FindAll("qualquer", string.Empty, StringComparison.Ordinal));
+        }
     }
 }
