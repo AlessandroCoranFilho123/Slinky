@@ -122,3 +122,4 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 | [`docs/SMOKE-TESTES-2026-10-22.md`](docs/SMOKE-TESTES-2026-10-22.md) | Registro da tentativa de 22/10 e dos bloqueios da época |
 | [`docs/SMOKE-TESTES-2026-10-28.md`](docs/SMOKE-TESTES-2026-10-28.md) | Registro de 28–29/10: testes, build, MSIX, instalação e lançamento |
 | [`docs/DESEMPENHO-E-TAMANHO.md`](docs/DESEMPENHO-E-TAMANHO.md) | Medições de CPU/RAM/partida/tamanho, experimentos (FDD, GC) e decisões |
+| [`docs/QA-2026-10-30.md`](docs/QA-2026-10-30.md) | QA profundo: codificações, arquivos grandes (limites), stress, integridade de dados, segurança |

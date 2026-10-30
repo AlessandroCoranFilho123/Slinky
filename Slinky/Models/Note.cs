@@ -141,7 +141,7 @@ namespace Slinky.Models
 
             try
             {
-                await FileIO.WriteBytesAsync(File, TextFileCodec.Encode(Text, EncodingKind, HasBom, LineEnding));
+                await WriteBytesSafeAsync(File, TextFileCodec.Encode(Text, EncodingKind, HasBom, LineEnding));
                 IsDirty = false;
                 LastError = null;
                 await RecentFilesService.AddAsync(File);
@@ -181,7 +181,7 @@ namespace Slinky.Models
                     return false; // user cancelled — not an error, LastError stays null
                 }
 
-                await FileIO.WriteBytesAsync(chosenFile, TextFileCodec.Encode(Text, EncodingKind, HasBom, LineEnding));
+                await WriteBytesSafeAsync(chosenFile, TextFileCodec.Encode(Text, EncodingKind, HasBom, LineEnding));
                 await RecentFilesService.AddAsync(chosenFile);
                 File = chosenFile;
                 IsDirty = false;
@@ -193,6 +193,37 @@ namespace Slinky.Models
             {
                 LastError = $"Não foi possível salvar: {ex.Message}";
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Writes bytes without risking a torn file if the process dies mid-write:
+        /// the payload goes to a temporary file in the same folder and replaces the
+        /// target with a rename. Falls back to a direct write when the folder cannot
+        /// host the temporary file (permissions, path length) — saving must not fail
+        /// because of the safety net.
+        /// </summary>
+        private static async Task WriteBytesSafeAsync(StorageFile target, byte[] bytes)
+        {
+            StorageFile? temporary = null;
+            try
+            {
+                var folder = await target.GetParentAsync();
+                if (folder is null)
+                {
+                    await FileIO.WriteBytesAsync(target, bytes);
+                    return;
+                }
+
+                temporary = await folder.CreateFileAsync($"{target.Name}.{Guid.NewGuid():N}.tmp", CreationCollisionOption.ReplaceExisting);
+                await FileIO.WriteBytesAsync(temporary, bytes);
+                await temporary.MoveAndReplaceAsync(target);
+                temporary = null;
+            }
+            catch
+            {
+                try { if (temporary is not null) { await temporary.DeleteAsync(); } } catch { }
+                await FileIO.WriteBytesAsync(target, bytes);
             }
         }
 

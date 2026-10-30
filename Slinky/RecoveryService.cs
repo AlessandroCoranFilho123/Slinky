@@ -31,7 +31,10 @@ namespace Slinky.Services
                 var fileName = $"{recoveryId}.json";
                 var temporaryName = $"{fileName}.{Guid.NewGuid():N}.tmp";
                 temporaryFile = await folder.CreateFileAsync(temporaryName, CreationCollisionOption.ReplaceExisting);
-                await FileIO.WriteTextAsync(temporaryFile, RecoverySnapshotCodec.Serialize(snapshot));
+                // JsonSerializer walks the whole document text (megabytes on large
+                // notes); off the UI thread it must not freeze typing or saving.
+                var json = await Task.Run(() => RecoverySnapshotCodec.Serialize(snapshot));
+                await FileIO.WriteTextAsync(temporaryFile, json);
                 await temporaryFile.MoveAsync(folder, fileName, NameCollisionOption.ReplaceExisting);
                 temporaryFile = null;
             }
@@ -76,7 +79,11 @@ namespace Slinky.Services
                 try
                 {
                     var json = await FileIO.ReadTextAsync(file);
-                    if (RecoverySnapshotCodec.TryDeserialize(json, out var snapshot) && snapshot is not null)
+                    RecoverySnapshot? snapshot = null;
+                    // Startup path: deserializing a multi-megabyte snapshot is CPU
+                    // work that must not run on the UI thread.
+                    var deserialized = await Task.Run(() => RecoverySnapshotCodec.TryDeserialize(json, out snapshot));
+                    if (deserialized && snapshot is not null)
                     {
                         if (!IsOwnedByLiveProcess(snapshot.OwnerProcessId))
                         {
