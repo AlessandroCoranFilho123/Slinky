@@ -26,6 +26,7 @@
       they compile in a plain net8.0 test project even though the app targets WinUI 3.
       UI classes remain covered by the app build and the Windows smoke run.
     -->
+    <Compile Remove=".\Slinky.IntegrationTests\**" />
     <Compile Include="..\Slinky\AppTheme.cs" Link="Linked\AppTheme.cs" />
     <Compile Include="..\Slinky\ThemePalette.cs" Link="Linked\ThemePalette.cs" />
     <Compile Include="..\Slinky\ContrastCalculator.cs" Link="Linked\ContrastCalculator.cs" />

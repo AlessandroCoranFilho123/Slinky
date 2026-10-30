@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Windows TFM: os serviços testados usam StorageFolder/FileIO (WinRT), que
+         existem sem identidade de pacote quando a pasta vem de um caminho real
+         (StorageFolder.GetFolderFromPathAsync). -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Fontes linkadas que usam apenas WinRT de armazenamento (sem XAML/WinUI):
+      com a pasta de estado injetada (StateFolders), rodam de verdade contra uma
+      pasta temporária isolada — banco de teste real, sem tocar dados do usuário.
+    -->
+    <Compile Include="..\..\Slinky\StateFolders.cs" Link="Linked\StateFolders.cs" />
+    <Compile Include="..\..\Slinky\TextFileCodec.cs" Link="Linked\TextFileCodec.cs" />
+    <Compile Include="..\..\Slinky\RecoveryService.cs" Link="Linked\RecoveryService.cs" />
+    <Compile Include="..\..\Slinky\RecoverySnapshot.cs" Link="Linked\RecoverySnapshot.cs" />
+    <Compile Include="..\..\Slinky\RecoveryLifecycle.cs" Link="Linked\RecoveryLifecycle.cs" />
+    <Compile Include="..\..\Slinky\RecoveryReattachPolicy.cs" Link="Linked\RecoveryReattachPolicy.cs" />
+    <Compile Include="..\..\Slinky\SessionService.cs" Link="Linked\SessionService.cs" />
+    <Compile Include="..\..\Slinky\SessionStateCodec.cs" Link="Linked\SessionStateCodec.cs" />
+    <Compile Include="..\..\Slinky\SessionRestorePolicy.cs" Link="Linked\SessionRestorePolicy.cs" />
+    <Compile Include="..\..\Slinky\RecentFilesService.cs" Link="Linked\RecentFilesService.cs" />
+    <Compile Include="..\..\Slinky\RecentFileListPolicy.cs" Link="Linked\RecentFileListPolicy.cs" />
+  </ItemGroup>
+
+</Project>

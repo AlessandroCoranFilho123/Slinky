@@ -20,15 +20,40 @@ namespace Slinky.Services
         public static async Task<StorageFolder> GetRecoveryFolderAsync() =>
             await (await StateFolders.LocalFolderProvider()).CreateFolderAsync(FolderName, CreationCollisionOption.OpenIfExists);
 
-        public static async Task SaveSnapshotAsync(Guid recoveryId, RecoverySnapshot snapshot)
+        // Snapshot generations invalidated by ClearRecoveryAsync, per snapshot file.
+        // Guarded by Gate (every read/write of this dictionary holds it). A tick that
+        // captured an older generation must not resurrect the snapshot after a save,
+        // close or delete already removed it (race R1/R2 of RACE-AUDIT-2026-10-30).
+        private static readonly Dictionary<string, int> InvalidatedGenerations = new();
+
+        public static async Task SaveSnapshotAsync(Guid recoveryId, RecoverySnapshot snapshot, int generation)
         {
             await Gate.WaitAsync();
             StorageFile? temporaryFile = null;
+            var fileName = $"{recoveryId}.json";
 
             try
             {
                 var folder = await GetRecoveryFolderAsync();
-                var fileName = $"{recoveryId}.json";
+                if (InvalidatedGenerations.TryGetValue(fileName, out var invalidated))
+                {
+                    if (generation < invalidated)
+                    {
+                        // The tick was scheduled before a save/close/delete that already
+                        // cleared this snapshot: refuse the stale write and clean up.
+                        // (A tick with the SAME generation as the clear is a fresh,
+                        // post-clear edit and must be written.)
+                        InvalidatedGenerations.Remove(fileName);
+                        if (await folder.TryGetItemAsync(fileName) is StorageFile stale)
+                        {
+                            await stale.DeleteAsync();
+                        }
+                        return;
+                    }
+
+                    InvalidatedGenerations.Remove(fileName);
+                }
+
                 var temporaryName = $"{fileName}.{Guid.NewGuid():N}.tmp";
                 temporaryFile = await folder.CreateFileAsync(temporaryName, CreationCollisionOption.ReplaceExisting);
                 // JsonSerializer walks the whole document text (megabytes on large
@@ -49,14 +74,19 @@ namespace Slinky.Services
             }
         }
 
-        public static async Task DeleteSnapshotAsync(Guid recoveryId)
+        public static async Task DeleteSnapshotAsync(Guid recoveryId, int generation)
         {
             await Gate.WaitAsync();
 
             try
             {
+                var fileName = $"{recoveryId}.json";
+                InvalidatedGenerations[fileName] = Math.Max(
+                    InvalidatedGenerations.TryGetValue(fileName, out var current) ? current : 0,
+                    generation);
+
                 var folder = await GetRecoveryFolderAsync();
-                if (await folder.TryGetItemAsync($"{recoveryId}.json") is StorageFile snapshotFile)
+                if (await folder.TryGetItemAsync(fileName) is StorageFile snapshotFile)
                 {
                     await snapshotFile.DeleteAsync();
                 }

@@ -41,6 +41,9 @@ namespace Slinky.Models
         private DispatcherTimer? autosaveTimer;
         private readonly RecoveryLifecycle recoveryLifecycle = new();
         private DateTime? autosavePendingSince;
+        // Incremented whenever a snapshot must be invalidated (save, close, delete);
+        // autosave writes carry the generation they were created with.
+        private int snapshotGeneration;
         private static readonly TimeSpan AutosaveDebounce = TimeSpan.FromSeconds(2);
         private static readonly TimeSpan AutosaveMaximumDelay = TimeSpan.FromSeconds(30);
 
@@ -348,6 +351,11 @@ namespace Slinky.Models
                     return;
                 }
 
+                // The generation captured here is checked after the write: if the user
+                // saved/closed/deleted while the snapshot was in flight (generation moved),
+                // RecoveryService refuses the stale write instead of resurrecting it.
+                var generation = snapshotGeneration;
+
                 var snapshot = new RecoverySnapshot
                 {
                     OwnerProcessId = Environment.ProcessId,
@@ -359,7 +367,7 @@ namespace Slinky.Models
                     HasBom = HasBom,
                     LineEnding = LineEnding
                 };
-                await RecoveryService.SaveSnapshotAsync(recoveryId, snapshot);
+                await RecoveryService.SaveSnapshotAsync(recoveryId, snapshot, generation);
                 autosavePendingSince = null;
             }
             catch
@@ -378,10 +386,13 @@ namespace Slinky.Models
 
             autosaveTimer?.Stop();
             autosavePendingSince = null;
+            // Invalidates any autosave already in flight: its write carries the older
+            // generation and RecoveryService will refuse it (race R1/R2).
+            snapshotGeneration++;
 
             try
             {
-                await RecoveryService.DeleteSnapshotAsync(recoveryId);
+                await RecoveryService.DeleteSnapshotAsync(recoveryId, snapshotGeneration);
             }
             catch
             {
