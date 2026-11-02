@@ -4,7 +4,7 @@
     <!-- Windows TFM: os serviços testados usam StorageFolder/FileIO (WinRT), que
          existem sem identidade de pacote quando a pasta vem de um caminho real
          (StorageFolder.GetFolderFromPathAsync). -->
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>

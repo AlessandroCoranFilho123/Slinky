@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>Slinky</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -50,8 +50,10 @@
 
   <!-- Publish Properties -->
   <PropertyGroup>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <!-- R2R off everywhere: the shipping decision is untrimmed + non-R2R (see
+         docs/DESEMPENHO-E-TAMANHO.md) and with net10 a local R2R build without an
+         explicit RID fails with NETSDK1094. Recipes that want it pass it explicitly. -->
+    <PublishReadyToRun>False</PublishReadyToRun>
     <!-- Production stays untrimmed while persistence uses reflection-based JSON. -->
     <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
