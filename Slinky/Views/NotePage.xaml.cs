@@ -29,6 +29,9 @@ namespace Slinky.Views
         public string NoteText => noteModel.Text;
         public string NoteTitle => noteModel.File?.Name ?? "Sem título";
 
+        /// <summary>Título completo da nota (nome + marcador de não salvo), para o título da janela.</summary>
+        public string NoteDisplayName => noteModel.DisplayName;
+
         public NotePage() : this(new Note()) { }
 
         public NotePage(Note note)
@@ -248,6 +251,14 @@ namespace Slinky.Views
             if (NoteEditor.CanUndo)
             {
                 NoteEditor.Undo();
+            }
+        }
+
+        public void Redo()
+        {
+            if (NoteEditor.CanRedo)
+            {
+                NoteEditor.Redo();
             }
         }
 

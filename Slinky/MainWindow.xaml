@@ -9,7 +9,7 @@
     mc:Ignorable="d"
     Title="Slinky">
 
-    <Grid x:Name="RootGrid" Background="{x:Bind Theme.Background, Mode=OneWay}" Loaded="RootGrid_Loaded" PointerPressed="RootGrid_PointerPressed" Tapped="RootGrid_Tapped">
+    <Grid x:Name="RootGrid" Background="{x:Bind Theme.Background, Mode=OneWay}" Loaded="RootGrid_Loaded" PointerPressed="RootGrid_PointerPressed" Tapped="RootGrid_Tapped" AllowDrop="True" DragOver="RootGrid_DragOver" Drop="RootGrid_DragDrop">
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="NovoAccelerator_Invoked"/>
             <KeyboardAccelerator Key="T" Modifiers="Control" Invoked="NovaAbaAccelerator_Invoked"/>

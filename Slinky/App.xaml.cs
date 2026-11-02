@@ -45,6 +45,12 @@ namespace Slinky
 
             _window = new MainWindow();
             Window = _window;
+            // Associação de arquivos / "Abrir com": o shell entrega o caminho do
+            // documento nos argumentos do processo.
+            if (LaunchArgs.ExtractFilePath(args.Arguments, File.Exists) is string filePath)
+            {
+                ((MainWindow)_window).PendingLaunchPath = filePath;
+            }
             _window.Activate();
         }
 
@@ -61,6 +67,13 @@ namespace Slinky
             {
                 var folder = ApplicationData.Current.LocalFolder;
                 var path = Path.Combine(folder.Path, "crash.log");
+                // Rotacao simples: acima de 512 KB, a geracao anterior vai para
+                // crash-prev.log e um novo arquivo comeca (evita crescimento sem fim).
+                if (File.Exists(path) && new FileInfo(path).Length > 512 * 1024)
+                {
+                    File.Copy(path, Path.Combine(folder.Path, "crash-prev.log"), true);
+                    File.Delete(path);
+                }
                 File.AppendAllText(path, $"{DateTime.Now:u} — {e.Exception}\n\n");
             }
             catch

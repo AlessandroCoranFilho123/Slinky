@@ -102,8 +102,6 @@ namespace Slinky.Models
         /// <summary>Full path for display in the toolbar. Empty for a note that was never saved.</summary>
         public string PathDisplay => File?.Path ?? string.Empty;
 
-        public DateTime CreatedAt { get; } = DateTime.Now;
-
         /// <summary>Loads an existing text file into this note. Returns false (with LastError set) on failure.</summary>
         public async Task<bool> OpenAsync(StorageFile fileToOpen)
         {

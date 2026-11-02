@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.Graphics.Printing;
+using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.System;
 using Windows.UI;
@@ -57,6 +58,7 @@ namespace Slinky
             SetTitleBar(AppTitleBar);
 
             ThemeService.Instance.ThemeChanged += ThemeService_ThemeChanged;
+            NotesTabView.SelectionChanged += (s, e) => UpdateWindowTitle();
             Closed += MainWindow_Closed;
             ApplyElementTheme();
 
@@ -179,6 +181,16 @@ namespace Slinky
 
                 startupRestorationInProgress = false;
                 await RefreshSessionAsync();
+
+                // Documento recebido na ativação (associação de arquivos / "Abrir com"),
+                // aberto por último para não disputar com o restore de sessão.
+                if (PendingLaunchPath is not null)
+                {
+                    var caminho = PendingLaunchPath;
+                    PendingLaunchPath = null;
+                    await OpenPathAsync(caminho);
+                }
+                UpdateWindowTitle();
             }
         }
 
@@ -355,6 +367,10 @@ namespace Slinky
 
         private void AddNoteTab(Note note, int? insertAtIndex = null)
         {
+            note.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(Note.DisplayName)) { UpdateWindowTitle(); }
+            };
             var page = new NotePage(note);
             page.RequestClose += async (s, e) =>
             {
@@ -444,6 +460,81 @@ namespace Slinky
         }
 
         private NotePage? GetActiveNotePage() => (NotesTabView.SelectedItem as TabViewItem)?.Content as NotePage;
+
+        /// <summary>Caminho de documento recebido na ativação (associação de arquivos / "Abrir com"), aberto após o restore.</summary>
+        public string? PendingLaunchPath { get; set; }
+
+        /// <summary>Atualiza o título da janela com o estado da aba ativa (nome + marcador de não salvo).</summary>
+        private void UpdateWindowTitle()
+        {
+            var page = GetActiveNotePage();
+            Title = page is null ? "Slinky" : page.NoteDisplayName + " - Slinky";
+        }
+
+        /// <summary>Abre um documento por caminho (ativação por arquivo / drag & drop), focando a aba se já estiver aberto.</summary>
+        public async Task OpenPathAsync(string path)
+        {
+            try
+            {
+                if (FindTabByPath(path) is TabViewItem existente)
+                {
+                    NotesTabView.SelectedItem = existente;
+                    return;
+                }
+
+                var pasta = await StorageFolder.GetFolderFromPathAsync(System.IO.Path.GetDirectoryName(path)!);
+                var file = await pasta.GetFileAsync(System.IO.Path.GetFileName(path));
+                var note = new Note();
+                if (!await note.OpenAsync(file))
+                {
+                    await ShowInfoDialogAsync("Não foi possível abrir o arquivo", note.LastError ?? "Erro desconhecido.");
+                    return;
+                }
+                AddNoteTab(note);
+                await RefreshRecentFilesMenuAsync();
+            }
+            catch (Exception ex)
+            {
+                await ShowInfoDialogAsync("Não foi possível abrir o arquivo", ex.Message);
+            }
+        }
+
+        private void RootGrid_DragOver(object sender, DragEventArgs e)
+        {
+            var deferral = e.GetDeferral();
+            try
+            {
+                e.AcceptedOperation = e.DataView.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems)
+                    ? Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy
+                    : Windows.ApplicationModel.DataTransfer.DataPackageOperation.None;
+                e.Handled = true;
+            }
+            finally
+            {
+                deferral.Complete();
+            }
+        }
+
+        private async void RootGrid_DragDrop(object sender, DragEventArgs e)
+        {
+            var deferral = e.GetDeferral();
+            try
+            {
+                if (!e.DataView.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems))
+                {
+                    return;
+                }
+                var items = await e.DataView.GetStorageItemsAsync();
+                foreach (var file in items.OfType<StorageFile>())
+                {
+                    await OpenPathAsync(file.Path);
+                }
+            }
+            finally
+            {
+                deferral.Complete();
+            }
+        }
 
         /// <summary>Finds the open tab backed by the given path, so re-opening a file focuses it instead of forking a second editable copy.</summary>
         private TabViewItem? FindTabByPath(string path)
@@ -688,6 +779,7 @@ namespace Slinky
         // ----- Menu: Editar ----------------------------------------------------------
 
         private void UndoMenuItem_Click(object sender, RoutedEventArgs e) => GetActiveNotePage()?.Undo();
+        private void RedoMenuItem_Click(object sender, RoutedEventArgs e) => GetActiveNotePage()?.Redo();
         private void CutMenuItem_Click(object sender, RoutedEventArgs e) => GetActiveNotePage()?.Cut();
         private void CopyMenuItem_Click(object sender, RoutedEventArgs e) => GetActiveNotePage()?.Copy();
         private void PasteMenuItem_Click(object sender, RoutedEventArgs e) => GetActiveNotePage()?.Paste();
