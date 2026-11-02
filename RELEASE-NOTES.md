@@ -1,44 +1,61 @@
 # Release notes — Slinky
 
 Este arquivo é a fonte única das notas de release. O workflow `release.yml` o usa
-como `body_path` (com `generate_release_notes: true`, que anexa o changelog
-automático). **Atualize a seção da nova release aqui antes de criar a tag.**
+como `body_path` (com `generate_release_notes: false` — a action v2 substituía o
+corpo curado pelo changelog automático). **Atualize a seção da nova release aqui
+antes de criar a tag.**
 
-## v1.0.4 (em preparação)
+## v1.0.5
 
-**Novidades**
+**Migração de runtime**
 
-- **Recuperação reconectada ao arquivo original**: notas recuperadas após um
-  encerramento inesperado voltam vinculadas ao arquivo (aba com o nome do arquivo;
-  `Ctrl+S` grava no documento original, sem "Salvar como"). Tokens da
-  FutureAccessList são capturados nos snapshots; token expirado/ausente mantém o
-  comportamento anterior (nota sem título).
-- Comportamentos alinhados ao Bloco de Notas clássico (decisões documentadas no
-  §15 da auditoria): flag de modificado "pegajoso" após undo, sobrescrita
-  silenciosa de arquivo alterado externamente e Windows-1252 com round-trip oficial.
+- **.NET 10** em todos os projetos (app, testes headless e de integração) e na CI —
+  feito antes do fim do suporte do .NET 8 (10/11/2026). O pacote self-contained
+  agora embarca o runtime .NET 10; Windows App SDK 1.8 permanece.
+- `PublishReadyToRun` desligado por padrão no projeto (a decisão de envio já era
+  non-R2R; com .NET 10 um build R2R sem RID explícito falha no local).
 
-**Melhorias**
+**Confiabilidade (auditoria de concorrência)**
 
-- Pacote usa referências granulares do Windows App SDK (sem payloads de IA/ML/Widgets)
-  e apenas idiomas en/pt-BR: ~6 MB menos instalados.
-- Relatório completo de desempenho e tamanho em `docs/DESEMPENHO-E-TAMANHO.md`
-  (CPU ociosa 0%, ~51 MB privados em repouso, partida aquecida ~0,4 s, piso do
-  framework medido com app vazio).
+- **Corrida R1/R2**: um autosave em voo podia ressuscitar o snapshot de recovery
+  depois de o usuário salvar/fechar/excluir a nota — o próximo launch oferecia
+  texto obsoleto como "não salvo". Snapshots agora carregam uma geração e escritas
+  obsoletas são recusadas e limpas.
+- **Corrida R5**: arquivos temporários órfãos (processo morto no meio de uma
+  gravação) agora são removidos no startup.
+- Salvar é **atômico** (temporário + replace): um encerramento no meio da gravação
+  nunca mais trunca o arquivo.
+- Serialização do recovery fora da UI thread (salvar 50 MB: 2–3 min → ~14 s).
 
-**Correções**
+**Usabilidade (auditoria externa + QA)**
 
-- Indicador de foco por teclado visível nos cinco temas (era sobrescrito pelos
-  visual states da `TextBox`).
-- `Ctrl+W` com o diálogo de confirmação aberto não abre um segundo diálogo
-  (COMException 0x80000019); atalhos `Ctrl+S`/`Ctrl+Shift+S`/`Ctrl+W` aguardam o
-  diálogo fechar.
+- "Substituir tudo" preserva o histórico de desfazer (Ctrl+Z volta ao original).
+- "Maiúsc/minúsc" visível também no Ctrl+F; Enter/Esc funcionam no campo de substituição.
+- Abrir um arquivo já aberto foca a aba existente em vez de duplicar.
+- Todos os diálogos seguem o tema ativo; menu de contexto do editor em pt-BR;
+  hover dos botões da barra de título com contraste correto em tema claro e escuro.
+- "Excluir arquivo" passa pela confirmação de alterações não salvas.
+- Recuperação reconectada ao arquivo original (notas voltam vinculadas ao documento).
+
+**Qualidade**
+
+- Novo projeto de testes de integração (`Slinky.IntegrationTests`): 8 testes
+  determinísticos de corrida/sessão/recovery contra pasta de estado real isolada
+  (76 testes headless + 8 de integração, todos verdes no .NET 10).
+- Auditoria de codificações, arquivos grandes, stress e segurança registrada em
+  `docs/QA-2026-10-30.md`.
+
+## v1.0.4
+
+- Auditoria de desempenho, memória e tamanho; pacotes granulares do Windows App SDK
+  (sem payloads de IA/ML/Widgets, ~6 MB a menos); correção do indicador de foco e do
+  diálogo duplo; smoke UI completo automatizado.
 
 ## v1.0.3
 
-- Auditoria de desempenho e tamanho; pacotes granulares do Windows App SDK;
-  correção do indicador de foco e do diálogo duplo; smoke UI completo (28–29/10)
-  com 20+ cenários validados; instalação MSIX com causas raiz documentadas
-  (`docs/INSTALACAO-MSIX.md`).
+- Correção do indicador de foco por teclado (era sobrescrito pelos visual states) e
+  do diálogo duplo; smoke UI completo (28–29/10) com 20+ cenários validados;
+  instalação MSIX com causas raiz documentadas (`docs/INSTALACAO-MSIX.md`).
 
 ## v1.0.2
 
@@ -52,4 +69,3 @@ automático). **Atualize a seção da nova release aqui antes de criar a tag.**
 ## v1.0.0
 
 - Primeira release pública: editor WinUI 3 com abas, cinco temas WCAG AA,
-  busca/substituição, impressão e recovery.

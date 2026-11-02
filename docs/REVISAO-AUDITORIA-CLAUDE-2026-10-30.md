@@ -103,7 +103,7 @@ comportamento correto (M7).
 
 ## Próximos passos sugeridos (prioridade × esforço)
 
-1. **Migrar para `net10.0-windows` antes de 10/11/2026** (EOL do .NET 8) — impacto alto, esforço baixo/médio: TFM + CI + smoke completo no pacote net10 (compilação e testes já validados).
+1. ~~Migrar para `net10.0-windows` antes de 10/11/2026~~ **EXECUTADA (30/10)** — TFM dos 3 projetos + CI em 10.0.x; MSIX self-contained net10 instalado e validado; release v1.0.5 publicada no runtime suportado.
 2. Versionar as baterias de QA em `Tests/automation/` — esforço baixo, valor alto.
 3. Limpeza de `.slinky-tmp` órfãos no startup — trivial.
 4. Associação de arquivos + abertura por linha de comando — impacto alto para substituto do Bloco de Notas, esforço médio.

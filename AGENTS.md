@@ -6,7 +6,7 @@ completa. Mantenha-o atualizado ao mudar o ambiente, os comandos ou o estado do 
 
 ## O que é o projeto
 
-Slinky é um editor de texto leve para Windows em WinUI 3 (C#/.NET 8), com abas,
+Slinky é um editor de texto leve para Windows em WinUI 3 (C#/.NET 10), com abas,
 cinco temas com contraste WCAG AA, busca/substituição, impressão e recuperação de
 conteúdo não salvo. Detalhes: [`README.md`](README.md) e
 [`docs/AUDITORIA-ARQUITETURA-E-PLANO.md`](docs/AUDITORIA-ARQUITETURA-E-PLANO.md).
@@ -29,7 +29,7 @@ conteúdo não salvo. Detalhes: [`README.md`](README.md) e
 ## Ambiente (máquina do Alessandro, verificado em 28/10/2026)
 
 - Windows 10 19045 x64; shell Git Bash.
-- .NET SDK `11.0.100-rc.2.26504.105`; alvo `net8.0-windows10.0.19041.0` (mínimo 17763).
+- .NET SDKs locais: `10.0.401` e `11.0.100-rc.2`; alvo `net10.0-windows10.0.19041.0` (mínimo 17763).
 - Apenas Windows PowerShell 5.1 (`powershell.exe`). **Não há `pwsh` nem `gh` instalados.**
 - Modo de desenvolvedor ativo (`AllowAllTrustedApps=1`); AppXSvc em execução.
 - Certificados de assinatura locais: dois `CN=Alessandro` em `CurrentUser\My` com
@@ -78,7 +78,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
   defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
-- Versão atual: **1.0.4.0** (release `v1.0.4` no GitHub; anterior v1.0.3).
+- Versão atual: **1.0.5.0** (release `v1.0.5` no GitHub; anterior v1.0.4) — primeiro release no .NET 10.
 - **Release notes**: fonte única em [`RELEASE-NOTES.md`](RELEASE-NOTES.md) — atualize a
   seção da nova release ANTES de criar a tag (`release.yml` usa `body_path` + changelog
   automático). Para editar o corpo de uma release já publicada é preciso token com
