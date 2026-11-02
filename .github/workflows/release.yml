@@ -94,13 +94,25 @@ jobs:
           path: release-assets
           merge-multiple: true
 
+      - name: Ler release notes curadas
+        id: notes
+        shell: bash
+        run: |
+          {
+            echo 'body<<EOF_SLINKY_NOTES'
+            cat RELEASE-NOTES.md
+            echo 'EOF_SLINKY_NOTES'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Publicar release
         uses: softprops/action-gh-release@v2
         with:
           name: Slinky ${{ github.ref_name }}
-          body_path: RELEASE-NOTES.md
+          body: ${{ steps.notes.outputs.body }}
           generate_release_notes: false
           files: release-assets/*
-        # generate_release_notes false on purpose: on v2 it REPLACED the curated
-        # body_path content with the auto changelog (observed on v1.0.4). The
-        # curated file carries the full notes; RELEASE-NOTES.md stays the source.
+        # body via GITHUB_OUTPUT (multilinha, determinístico). O body_path da
+        # action v2 foi IGNORADO nas releases v1.0.4/v1.0.5 (corpo publicado
+        # vazio) — observado duas vezes e corrigido via API; este caminho evita
+        # o problema. generate_release_notes false on purpose: on v2 it also
+        # REPLACED the curated body with the auto changelog (observed on v1.0.4).
