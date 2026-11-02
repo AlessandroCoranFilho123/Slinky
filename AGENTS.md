@@ -24,7 +24,7 @@ conteúdo não salvo. Detalhes: [`README.md`](README.md) e
 - `.github/workflows/tests.yml` — CI: testes, builds x86/x64/ARM64, MSIX x64 assinado
   com cert efêmero, smoke de instalação e build trimmed diagnóstico.
 - `.github/workflows/release.yml` — packages assinados por arquitetura
-  (cert efêmero `CN=Slinky Release`) publicados como release.
+  (cert efêmero `CN=Slinky Release`) publicados como release com `Slinky-Release.cer`.
 
 ## Ambiente (máquina do Alessandro, verificado em 28/10/2026)
 

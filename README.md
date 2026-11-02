@@ -38,7 +38,7 @@ Durante a instalação local, o certificado autoassinado também pode ser regist
 `TrustedPeople` e `Root` do computador para que o Windows aceite a assinatura do MSIX.
 Esse certificado é apenas de desenvolvimento; não é usado nos pacotes de distribuição.
 
-Para instalar um pacote publicado, baixe na [release mais recente](https://github.com/AlessandroCoranFilho123/Slinky/releases/latest) o `.msixbundle`, `Slinky-Development.cer` e `Install-Slinky.ps1` na mesma pasta. Execute `Install-Slinky.ps1` e aceite o UAC: ele registra o certificado em `TrustedPeople` e `Root` do computador, remove somente uma instalação anterior do Slinky e instala o pacote.
+Para instalar um pacote publicado, baixe na [release mais recente](https://github.com/AlessandroCoranFilho123/Slinky/releases/latest) o `.msixbundle`, `Slinky-Release.cer` e `Install-Slinky.ps1` na mesma pasta. Execute `Install-Slinky.ps1` e aceite o UAC: ele valida que o certificado é o signatário do pacote, registra-o em `TrustedPeople` (não em `Root` — comprovado suficiente para MSIX; ver `docs/AUDITORIA-CERTIFICADOS-2026-11-02.md`), remove somente o pacote de identidade do Slinky e instala. Releases anteriores à v1.0.6 publicam o certificado como `Slinky-Development.cer`.
 Para removê-lo, abra `certmgr.msc` ou o Gerenciador de Certificados do computador e
 remova os certificados `CN=Alessandro` que foram criados para o Slinky.
 
