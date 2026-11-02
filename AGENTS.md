@@ -18,7 +18,7 @@ conteúdo não salvo. Detalhes: [`README.md`](README.md) e
 - `Tests/` — xUnit headless (`Slinky.Tests.csproj`): persistência, busca, contraste,
   paginação, estados de aba e temas. Nenhum teste instancia janelas WinUI.
 - `scripts/` — `Prepare-DevelopmentCertificate.ps1` (cert local `CN=Alessandro`) e
-  `Install-ReleasePackage.ps1` (instala bundle de release, exige UAC).
+  `Install-Slinky.ps1` (instala bundle de release, exige UAC — publicado como asset `Install-Slinky.ps1`).
 - `instalar-slinky.bat` — fluxo local completo: cert + build assinado self-contained +
   registro do cert nas stores de máquina (UAC) + `Add-AppxPackage`.
 - `.github/workflows/tests.yml` — CI: testes, builds x86/x64/ARM64, MSIX x64 assinado

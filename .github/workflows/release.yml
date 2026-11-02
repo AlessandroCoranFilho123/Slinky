@@ -72,7 +72,7 @@ jobs:
           Copy-Item $bundle.FullName "release-assets\Slinky-${{ github.ref_name }}-${{ matrix.platform }}.msixbundle"
           if ('${{ matrix.platform }}' -eq 'x64') {
             Copy-Item Slinky-Release.cer 'release-assets\Slinky-Release.cer'
-            Copy-Item scripts\Install-ReleasePackage.ps1 'release-assets\Install-Slinky.ps1'
+            Copy-Item scripts\Install-Slinky.ps1 'release-assets\Install-Slinky.ps1'
           }
 
       - name: Publicar artefato intermediário

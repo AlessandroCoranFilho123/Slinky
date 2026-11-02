@@ -155,12 +155,16 @@ if "%SIGN_PACKAGE%"=="1" (
         copy /y "%CERT_PUBLIC_FILE%" "!PACKAGE_DIR!Slinky_1.0.5.0_x64.cer" >nul
         if errorlevel 1 goto failed
         set "SLINKY_CERT_PUBLIC_FILE=%CERT_PUBLIC_FILE%"
-        powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; foreach($store in @('TrustedPeople','Root')) { $process = Start-Process -FilePath 'certutil.exe' -Verb RunAs -ArgumentList @('-addstore', $store, $env:SLINKY_CERT_PUBLIC_FILE) -Wait -PassThru; if($process.ExitCode -ne 0) { exit $process.ExitCode } }"
+        rem Somente TrustedPeople: comprovado (docs/AUDITORIA-CERTIFICADOS-2026-11-02.md)
+        rem que o MSIX self-signed instala sem o certificado no Root.
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $process = Start-Process -FilePath 'certutil.exe' -Verb RunAs -ArgumentList @('-addstore', 'TrustedPeople', $env:SLINKY_CERT_PUBLIC_FILE) -Wait -PassThru; if($process.ExitCode -ne 0) { exit $process.ExitCode }"
         if errorlevel 1 goto failed
         powershell.exe -NoProfile -ExecutionPolicy Bypass -File "!INSTALL_SCRIPT!" -Force -SkipLoggingTelemetry -CertificatePath "!PACKAGE_DIR!Slinky_1.0.5.0_x64.cer"
     ) else (
         set "SLINKY_CERT_PUBLIC_FILE=%CERT_PUBLIC_FILE%"
-        powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $null = Import-Certificate -FilePath $env:SLINKY_CERT_PUBLIC_FILE -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople'; Add-AppxPackage -Path $env:SLINKY_PACKAGE -ForceApplicationShutdown -ForceUpdateFromAnyVersion"
+        rem Mesma confianca de maquina no fallback: CurrentUser\TrustedPeople nao
+        rem e honrado pela validacao do AppXSvc e era um caminho sem teste.
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $process = Start-Process -FilePath 'certutil.exe' -Verb RunAs -ArgumentList @('-addstore', 'TrustedPeople', $env:SLINKY_CERT_PUBLIC_FILE) -Wait -PassThru; if($process.ExitCode -ne 0) { exit $process.ExitCode }; Add-AppxPackage -Path $env:SLINKY_PACKAGE -ForceApplicationShutdown -ForceUpdateFromAnyVersion"
     )
 ) else (
     powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $command = Get-Command Add-AppxPackage -ErrorAction Stop; if(-not $command.Parameters.ContainsKey('AllowUnsigned')){throw 'Esta versao do Windows nao oferece instalacao de pacotes unsigned. Use o modo padrao, que assina o pacote com um certificado de desenvolvimento.'}; Add-AppxPackage -Path $env:SLINKY_PACKAGE -AllowUnsigned -ForceApplicationShutdown -ForceUpdateFromAnyVersion"

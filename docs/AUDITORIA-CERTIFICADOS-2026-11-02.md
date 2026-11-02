@@ -1,5 +1,17 @@
 # Auditoria de certificados e instalação — 02/11/2026
 
+> **Decisões do Alessandro executadas em 02/11:** (1) os dois certificados efêmeros
+> `CN=Slinky Release` foram removidos de `LocalMachine\Root` por thumbprint
+> (E5850D19…/A7C060FB…, validados por subject/EKU/validade, log completo gerado;
+> restou apenas o `CN=Alessandro` do processo de assinatura local); (2) o asset de
+> certificado das releases passou a se chamar `Slinky-Release.cer` (nome canônico,
+> sem compatibilidade com o nome legado — releases anteriores à v1.0.6 publicam
+> `Slinky-Development.cer`); (3) o fallback `CurrentUser\TrustedPeople` do
+> `instalar-slinky.bat` foi removido — toda a confiança de pacote é de máquina
+> (`LocalMachine\TrustedPeople`, elevada) e o import em `Root` foi retirado do
+> instalador de release e do bat; (4) correção documental: o gerenciador correto
+> para `LocalMachine` é `certlm.msc` (não `certmgr.msc`).
+
 Auditoria de segurança dos scripts de certificado/instalação sobre a master
 (`dceef5c`), com experimentos no Windows real (Win10 19045) e correções aplicadas
 nesta data. Nada foi assumido pelos nomes dos arquivos — todo achado vem do código
@@ -186,3 +198,15 @@ sobrescrito sem prompt (comportamento aceitável para um nome com GUID/temp).
   documentado).
 - `Cert:\LocalMachine\Root` da máquina ainda contém os 2 certs efêmeros — ver
   risco residual acima.
+
+## 9. Recomendação de longo prazo — assinatura de distribuição pública
+
+Certificados autoassinados exigem que cada máquina estabeleça confiança
+explicitamente (importação elevada de `.cer`), o que é aceitável para
+desenvolvimento e para um público técnico, mas não é ideal para distribuição
+pública ampla. A recomendação de longo prazo é assinar as releases com um
+certificado de assinatura de código emitido por uma CA reconhecida (OV hoje; EV
+SmartScreen reputação imediata), mantendo o fluxo atual de CI — apenas o
+certificado/secret mudaria. Enquanto isso não acontecer, o mecanismo atual
+(TrustedPeople + `.cer` publicado junto à release) permanece documentado e
+verificado.

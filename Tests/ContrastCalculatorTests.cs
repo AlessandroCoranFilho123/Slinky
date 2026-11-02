@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Slinky.Tests
 {
+    [Trait("Category", "Unit")]
     public class ContrastCalculatorTests
     {
         [Fact]
