@@ -25,13 +25,16 @@ $certificate = Get-ChildItem -Path 'Cert:\CurrentUser\My' -ErrorAction SilentlyC
     Select-Object -First 1
 
 if ($null -eq $certificate) {
+    # NonExportable: a chave privada fica na store do usuário e assina os builds
+    # locais no lugar — nenhum fluxo do repositório exporta PFX (a CI gera cert
+    # efêmero próprio e o Export-Certificate abaixo emite somente o .cer público).
     $certificate = New-SelfSignedCertificate `
         -Type CodeSigningCert `
         -Subject 'CN=Alessandro' `
         -FriendlyName 'Slinky Development Certificate' `
         -CertStoreLocation 'Cert:\CurrentUser\My' `
         -HashAlgorithm SHA256 `
-        -KeyExportPolicy Exportable
+        -KeyExportPolicy NonExportable
 }
 
 $parent = Split-Path -Parent $OutputCertificatePath

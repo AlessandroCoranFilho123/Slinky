@@ -44,7 +44,7 @@ jobs:
         shell: pwsh
         run: |
           $certificate = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Slinky Release' -CertStoreLocation 'Cert:\CurrentUser\My' -HashAlgorithm SHA256 -KeyExportPolicy Exportable
-          Export-Certificate -Cert $certificate -FilePath "$env:GITHUB_WORKSPACE\Slinky-Development.cer" -Type CERT | Out-Null
+          Export-Certificate -Cert $certificate -FilePath "$env:GITHUB_WORKSPACE\Slinky-Release.cer" -Type CERT | Out-Null
           "APPX_CERT_THUMBPRINT=$($certificate.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Gerar pacote MSIX
@@ -71,7 +71,7 @@ jobs:
           if ($null -eq $bundle) { throw 'MSIXBundle não foi gerado.' }
           Copy-Item $bundle.FullName "release-assets\Slinky-${{ github.ref_name }}-${{ matrix.platform }}.msixbundle"
           if ('${{ matrix.platform }}' -eq 'x64') {
-            Copy-Item Slinky-Development.cer 'release-assets\Slinky-Development.cer'
+            Copy-Item Slinky-Release.cer 'release-assets\Slinky-Release.cer'
             Copy-Item scripts\Install-ReleasePackage.ps1 'release-assets\Install-Slinky.ps1'
           }
 
