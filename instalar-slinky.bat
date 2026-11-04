@@ -152,14 +152,14 @@ if "%SIGN_PACKAGE%"=="1" (
     set "INSTALL_SCRIPT=!PACKAGE_DIR!Add-AppDevPackage.ps1"
     if exist "!INSTALL_SCRIPT!" (
         del /q "!PACKAGE_DIR!*.cer" >nul 2>&1
-        copy /y "%CERT_PUBLIC_FILE%" "!PACKAGE_DIR!Slinky_1.0.5.0_x64.cer" >nul
+        copy /y "%CERT_PUBLIC_FILE%" "!PACKAGE_DIR!Slinky_1.0.6.0_x64.cer" >nul
         if errorlevel 1 goto failed
         set "SLINKY_CERT_PUBLIC_FILE=%CERT_PUBLIC_FILE%"
         rem Somente TrustedPeople: comprovado (docs/AUDITORIA-CERTIFICADOS-2026-11-02.md)
         rem que o MSIX self-signed instala sem o certificado no Root.
         powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $process = Start-Process -FilePath 'certutil.exe' -Verb RunAs -ArgumentList @('-addstore', 'TrustedPeople', $env:SLINKY_CERT_PUBLIC_FILE) -Wait -PassThru; if($process.ExitCode -ne 0) { exit $process.ExitCode }"
         if errorlevel 1 goto failed
-        powershell.exe -NoProfile -ExecutionPolicy Bypass -File "!INSTALL_SCRIPT!" -Force -SkipLoggingTelemetry -CertificatePath "!PACKAGE_DIR!Slinky_1.0.5.0_x64.cer"
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -File "!INSTALL_SCRIPT!" -Force -SkipLoggingTelemetry -CertificatePath "!PACKAGE_DIR!Slinky_1.0.6.0_x64.cer"
     ) else (
         set "SLINKY_CERT_PUBLIC_FILE=%CERT_PUBLIC_FILE%"
         rem Mesma confianca de maquina no fallback: CurrentUser\TrustedPeople nao

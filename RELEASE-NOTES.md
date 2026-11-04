@@ -5,6 +5,27 @@ como `body_path` (com `generate_release_notes: false` — a action v2 substituí
 corpo curado pelo changelog automático). **Atualize a seção da nova release aqui
 antes de criar a tag.**
 
+## v1.0.6
+
+**Novidades**
+
+- **Refazer (Ctrl+Y)** no menu Editar.
+- **Abrir arquivos por linha de comando**: `Slinky.exe "caminho\arquivo.txt"` abre o
+  documento na janela (com foco na aba se já estiver aberto).
+- **Drag & drop**: arraste um arquivo para a janela para abri-lo em nova aba.
+- **Título da janela** acompanha a aba ativa (nome do arquivo + marcador de não salvo).
+- Editor sem correção automática/previsão: um editor de texto não reescreve o
+  texto do usuário silenciosamente.
+- `crash.log` rotaciona automaticamente acima de 512 KB (`crash-prev.log`).
+- Dependabot semanal para NuGet e GitHub Actions.
+
+**Notas**
+
+- A associação de arquivos por duplo clique (abrir .txt do Explorer) segue
+  pendente: o empacotador self-contained do Windows App SDK reescreve o
+  manifesto e descarta extensões `uap:` (validação de schema falha no
+  MakeAppx) — investigação de empacotamento registrada.
+
 ## v1.0.5
 
 **Migração de runtime**
