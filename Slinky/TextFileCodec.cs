@@ -37,6 +37,8 @@ public static class TextFileCodec
     static TextFileCodec()
     {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        Windows1252Strict = Encoding.GetEncoding(1252,
+            EncoderFallback.ExceptionFallback, DecoderFallback.ReplacementFallback);
     }
 
     public static DecodedText Decode(ReadOnlySpan<byte> bytes)
@@ -170,12 +172,27 @@ public static class TextFileCodec
             _ => TextEncodingKind.Utf8
         };
 
+    // F-02: encoder de 1252 com ExceptionFallback — caractere fora da 1252 (emoji,
+    // CJK) precisa falhar em vez de virar '?' silenciosamente. O decoder mantém
+    // replacement: todo byte de 1252 mapeia para um caractere.
+    private static readonly Encoding Windows1252Strict;
+
     private static Encoding GetEncoding(TextEncodingKind kind, bool hasBom)
         => kind switch
         {
             TextEncodingKind.Utf16LittleEndian => new UnicodeEncoding(false, hasBom),
             TextEncodingKind.Utf16BigEndian => new UnicodeEncoding(true, hasBom),
-            TextEncodingKind.Windows1252 => Encoding.GetEncoding(1252),
+            TextEncodingKind.Windows1252 => Windows1252Strict,
             _ => new UTF8Encoding(hasBom)
         };
+
+        /// <summary>F-18: byte NUL indica conteúdo binário, não documento de texto.</summary>
+        public static bool LooksLikeBinary(byte[] bytes)
+        {
+            foreach (var b in bytes)
+            {
+                if (b == 0) return true;
+            }
+            return false;
+        }
 }

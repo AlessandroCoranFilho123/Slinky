@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
 rem Instala o Slinky a partir do codigo-fonte usando um pacote MSIX local.
@@ -80,7 +80,7 @@ if errorlevel 1 (
 where.exe dotnet >nul 2>&1
 if errorlevel 1 (
     echo ERRO: o .NET SDK nao foi encontrado no PATH.
-    echo Instale o SDK .NET 8 ou abra o script em um Developer Command Prompt.
+    echo Instale o SDK .NET 10 ou abra o script em um Developer Command Prompt.
     exit /b 1
 )
 

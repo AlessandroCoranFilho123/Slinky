@@ -41,6 +41,7 @@ namespace Slinky.Models
         private DispatcherTimer? autosaveTimer;
         private readonly RecoveryLifecycle recoveryLifecycle = new();
         private DateTime? autosavePendingSince;
+        private bool autosaveInFlight;
         // Incremented whenever a snapshot must be invalidated (save, close, delete);
         // autosave writes carry the generation they were created with.
         private int snapshotGeneration;
@@ -109,6 +110,18 @@ namespace Slinky.Models
             {
                 var buffer = await FileIO.ReadBufferAsync(fileToOpen);
                 CryptographicBuffer.CopyToByteArray(buffer, out var bytes);
+                // F-18: limite de tamanho medido (100 MB abre com ~5 GB de RAM) e
+                // recusa de conteúdo binário — salvar depois corromperia o arquivo.
+                if (bytes.Length > 100 * 1024 * 1024)
+                {
+                    LastError = "Arquivo acima do limite suportado (100 MB).";
+                    return false;
+                }
+                if (TextFileCodec.LooksLikeBinary(bytes))
+                {
+                    LastError = "O arquivo não parece ser um documento de texto (conteúdo binário).";
+                    return false;
+                }
                 var decoded = TextFileCodec.Decode(bytes);
                 text = decoded.Text;
                 EncodingKind = decoded.Encoding;
@@ -337,7 +350,8 @@ namespace Slinky.Models
         {
             autosaveTimer?.Stop();
 
-            if (!recoveryLifecycle.CanSchedule || !IsDirty)
+            // F-07: não agenda com tick em voo — evita fila de serializações.
+            if (autosaveInFlight || !recoveryLifecycle.CanSchedule || !IsDirty)
             {
                 return;
             }
@@ -367,9 +381,14 @@ namespace Slinky.Models
                 };
                 await RecoveryService.SaveSnapshotAsync(recoveryId, snapshot, generation);
                 autosavePendingSince = null;
+                // F-07: reagenda se houver edição nova durante a gravação em voo.
+                if (IsDirty) { ScheduleAutosave(); }
             }
             catch
             {
+                // F-07: falha não pode virar loop por tecla — volta ao debounce
+                // normal (2 s) em vez do teto de 1 ms.
+                autosavePendingSince = null;
                 // Recovery is a best-effort safety net; a failure here shouldn't interrupt editing.
             }
         }

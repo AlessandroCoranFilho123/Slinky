@@ -41,15 +41,17 @@ namespace Slinky.Services
             try
             {
                 var tokens = new List<string>();
-
-                foreach (var oldToken in PathToToken.Values)
-                {
-                    try { StorageApplicationPermissions.FutureAccessList.Remove(oldToken); } catch { }
-                }
-                PathToToken.Clear();
+                var openPaths = new HashSet<string>(openFiles.Select(f => f.Path), StringComparer.OrdinalIgnoreCase);
 
                 foreach (var file in openFiles)
                 {
+                    // F-06: token estável por caminho — reusar o token existente evita
+                    // invalidar o FileToken capturado em snapshots ainda não reescritos.
+                    if (PathToToken.TryGetValue(file.Path, out var existing))
+                    {
+                        tokens.Add(existing);
+                        continue;
+                    }
                     try
                     {
                         var token = StorageApplicationPermissions.FutureAccessList.Add(file, file.Path);
@@ -60,6 +62,13 @@ namespace Slinky.Services
                     {
                         // list may be full — just skip this one, session restore is best-effort
                     }
+                }
+
+                // remove apenas tokens de caminhos que deixaram de estar abertos
+                foreach (var stale in PathToToken.Where(kv => !openPaths.Contains(kv.Key)).ToList())
+                {
+                    try { StorageApplicationPermissions.FutureAccessList.Remove(stale.Value); } catch { }
+                    PathToToken.Remove(stale.Key);
                 }
 
                 var folder = await StateFolders.LocalFolderProvider();
@@ -94,8 +103,15 @@ namespace Slinky.Services
 
                 // Startup-only path: leftover .tmp files mean a process died between
                 // the write and the atomic replace — never usable, just cleanup.
+                // F-12: só remove .tmp antigo (10 min) — .tmp fresco pode ser de
+                // outra janela viva no meio de uma gravação.
                 foreach (var file in files.Where(f => f.Name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)))
                 {
+                    var props = await file.GetBasicPropertiesAsync();
+                    if ((DateTimeOffset.UtcNow - props.DateModified).Duration() < TimeSpan.FromMinutes(10))
+                    {
+                        continue;
+                    }
                     try { await file.DeleteAsync(); } catch { }
                 }
 

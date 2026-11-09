@@ -11,4 +11,5 @@
     <Deploy />
   </Project>
   <Project Path="Tests/Slinky.Tests.csproj" />
+  <Project Path="Tests/Slinky.IntegrationTests/Slinky.IntegrationTests.csproj" />
 </Solution>

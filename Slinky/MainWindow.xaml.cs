@@ -258,20 +258,26 @@ namespace Slinky
                 Title = "Notas não salvas encontradas",
                 Content = $"O Slinky parece ter sido fechado sem salvar {leftovers.Count} nota(s) da última vez. Restaurar o conteúdo?",
                 PrimaryButtonText = "Restaurar",
-                CloseButtonText = "Descartar",
+                SecondaryButtonText = "Descartar",
+                CloseButtonText = "Decidir depois",
                 DefaultButton = ContentDialogButton.Primary,
                 RequestedTheme = ThemeService.Instance.ElementTheme
             };
 
             var result = await dialog.ShowAsync();
 
-            if (result == ContentDialogResult.Primary)
+            // F-04: só Restaurar e Descartar consomem os snapshots. Esc/cancel
+            // ("Decidir depois") preserva tudo no disco para a próxima abertura.
+            if (result is ContentDialogResult.Primary or ContentDialogResult.Secondary)
             {
                 foreach (var (_, snapshot) in leftovers)
                 {
                     var note = new Note();
                     note.RestoreFromSnapshot(snapshot);
-                    await note.TryReattachSavedFileAsync(snapshot);
+                    if (result == ContentDialogResult.Primary)
+                    {
+                        await note.TryReattachSavedFileAsync(snapshot);
+                    }
                     AddNoteTab(note);
 
                     if (!string.IsNullOrEmpty(snapshot.FilePath))
@@ -279,12 +285,11 @@ namespace Slinky
                         recoveredPaths.Add(snapshot.FilePath);
                     }
                 }
-            }
 
-            // Whether restored or discarded, clean up the leftover files so they don't keep reappearing.
-            foreach (var (snapshotFile, _) in leftovers)
-            {
-                try { await snapshotFile.DeleteAsync(); } catch { }
+                foreach (var (snapshotFile, _) in leftovers)
+                {
+                    try { await snapshotFile.DeleteAsync(); } catch { }
+                }
             }
 
             return recoveredPaths;

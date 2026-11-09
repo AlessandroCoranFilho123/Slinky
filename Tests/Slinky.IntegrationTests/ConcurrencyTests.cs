@@ -123,23 +123,30 @@ namespace Slinky.IntegrationTests
             // R5: .tmp órfãos (processo morreu entre a escrita e o Move) são lixo;
             // os snapshots válidos ao lado devem permanecer intocados.
             var recovery = Directory.CreateDirectory(Path.Combine(_directory, "Recovery"));
-            File.WriteAllText(Path.Combine(recovery.FullName, "valida.json"), "{\"Text\":\"vale\"}");
+            File.WriteAllText(Path.Combine(recovery.FullName, "valida.json"), "{\"OwnerProcessId\":999999,\"Text\":\"vale\"}");
             File.WriteAllText(Path.Combine(recovery.FullName, "329a.json.abcdef123456.tmp"), "{\"Text\":\"lixo\"}");
             File.WriteAllText(Path.Combine(recovery.FullName, "outro.json.fedcba654321.tmp"), "lixo parcial");
+            // F-12: simula orfão de verdade — tmp de processo morto tem data antiga;
+            // tmp fresco de processo vivo é preservado pelo filtro de idade.
+            foreach (var tmp in Directory.GetFiles(recovery.FullName, "*.tmp"))
+            {
+                File.SetLastWriteTime(tmp, DateTime.UtcNow.AddMinutes(-15));
+            }
 
             var leftovers = await RecoveryService.FindLeftoverSnapshotsAsync();
 
             Assert.Empty(Directory.GetFiles(recovery.FullName, "*.tmp"));
             Assert.True(File.Exists(Path.Combine(recovery.FullName, "valida.json")));
-            // A valid snapshot with a live-owner pid is not a leftover; one with a
-            // dead pid would be — the text here has no live owner, so it is offered.
+            // Snapshot de processo morto (999999): oferecido no recovery.
             Assert.Contains(leftovers, l => l.Snapshot.Text == "vale");
         }
 
         [Fact]
         public async Task SessionStartupCleansOrphanTmpAndKeepsDeadPidSessions()
         {
-            File.WriteAllText(Path.Combine(_directory, "session-999999.json.tmp"), "[]");
+            var tmp = Path.Combine(_directory, "session-999999.json.tmp");
+            File.WriteAllText(tmp, "[]");
+            File.SetLastWriteTime(tmp, DateTime.UtcNow.AddMinutes(-15)); // F-12: órfão de verdade
             File.WriteAllText(Path.Combine(_directory, "session-999999.json"), "[\"token-morto\"]");
 
             var lidos = await SessionService.LoadAndClearAsync();

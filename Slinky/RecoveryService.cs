@@ -108,9 +108,15 @@ namespace Slinky.Services
             {
                 // Startup-only path: a leftover .tmp means a process died between the
                 // write and the atomic replace — the payload never reached the real
-                // snapshot, so it is garbage and would only pollute the folder.
+                // snapshot. F-12: só remove .tmp antigo (10 min) — .tmp fresco pode
+                // estar em voo em outra janela do mesmo pacote.
                 if (file.Name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
                 {
+                    var props = await file.GetBasicPropertiesAsync();
+                    if ((DateTimeOffset.UtcNow - props.DateModified).Duration() < TimeSpan.FromMinutes(10))
+                    {
+                        continue;
+                    }
                     try { await file.DeleteAsync(); } catch { }
                     continue;
                 }
