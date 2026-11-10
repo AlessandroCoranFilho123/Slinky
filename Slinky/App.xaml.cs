@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.IO;
+using System.Linq;
 using Slinky.Services;
 using Windows.Storage;
 
@@ -45,11 +46,24 @@ namespace Slinky
 
             _window = new MainWindow();
             Window = _window;
-            // Associação de arquivos / "Abrir com": o shell entrega o caminho do
-            // documento nos argumentos do processo.
+            // Associação de arquivos / "Abrir com": dois canais de entrega.
+            // (1) Lançamento explícito: caminho na linha de comando do processo.
             if (LaunchArgs.ExtractFilePath(args.Arguments, File.Exists) is string filePath)
             {
                 ((MainWindow)_window).PendingLaunchPath = filePath;
+            }
+            else if (
+                // (2) Duplo-clique no Explorer: a ativação empacotada entrega o arquivo
+                // via FileActivatedEventArgs (AppLifecycle), não via linha de comando.
+                // Sem comparação de Kind: a projeção 19041 não traz ExtendedActivationKind,
+                // e o cast do Data já caracteriza a ativação por arquivo.
+                Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs()?.Data
+                    is Windows.ApplicationModel.Activation.FileActivatedEventArgs fileArgs
+                && LaunchArgs.ExtractFirstExisting(
+                    fileArgs.Files.Select(f => f is Windows.Storage.StorageFile sf ? sf.Path : null),
+                    File.Exists) is string activatedPath)
+            {
+                ((MainWindow)_window).PendingLaunchPath = activatedPath;
             }
             _window.Activate();
         }

@@ -30,15 +30,20 @@ namespace Slinky
                 candidates.Add(arguments.Trim());
             }
 
-            foreach (var candidate in candidates)
-            {
-                if (fileExists(candidate))
-                {
-                    return candidate;
-                }
-            }
+            return ExtractFirstExisting(candidates, fileExists);
+        }
 
-            return null;
+        /// <summary>
+        /// Caminhos vindos da ativação por arquivo (duplo-clique/"Abrir com"): o shell
+        /// entrega-os via FileActivatedEventArgs, não na linha de comando. O primeiro
+        /// que existir no disco vence, como no parsing de argumentos.
+        /// </summary>
+        public static string? ExtractFirstExisting(IEnumerable<string?> paths, Func<string, bool> fileExists)
+        {
+            return paths
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Select(p => p!.Trim())
+                .FirstOrDefault(fileExists);
         }
     }
 }

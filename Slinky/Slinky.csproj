@@ -71,4 +71,13 @@
 		<PackageReference Include="Microsoft.WindowsAppSDK.DWrite" Version="1.8.25090401" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- File activation (double-click) needs Microsoft.Windows.AppLifecycle.AppInstance.
+		     The granular packages project only the WinUI metadata, so reference the
+		     prebuilt projection directly; keep this version in sync with the packages above. -->
+		<Reference Include="Microsoft.Windows.AppLifecycle.Projection">
+			<HintPath>$(NuGetPackageRoot)microsoft.windowsappsdk.foundation\1.8.250906002\lib\net6.0-windows10.0.17763.0\Microsoft.Windows.AppLifecycle.Projection.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
 </Project>

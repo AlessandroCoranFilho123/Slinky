@@ -33,5 +33,20 @@ namespace Slinky.Tests
         {
             Assert.Null(LaunchArgs.ExtractFilePath("\"C:/x.txt\"", _ => false));
         }
+
+        [Fact]
+        public void FileActivationFirstExistingPathWins()
+        {
+            var paths = new[] { "C:/x.txt", "C:/b.txt", "C:/a.txt" };
+            Assert.Equal("C:/b.txt", LaunchArgs.ExtractFirstExisting(paths, p => p.Contains('b')));
+        }
+
+        [Fact]
+        public void FileActivationIgnoresNullAndBlankEntries()
+        {
+            var paths = new string?[] { null, "   ", "C:/a.txt" };
+            Assert.Equal("C:/a.txt", LaunchArgs.ExtractFirstExisting(paths, _ => true));
+            Assert.Null(LaunchArgs.ExtractFirstExisting(new string?[] { null, "" }, _ => true));
+        }
     }
 }
