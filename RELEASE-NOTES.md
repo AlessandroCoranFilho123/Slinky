@@ -14,6 +14,9 @@ antes de criar a tag.**
   documento na janela (com foco na aba se já estiver aberto).
 - **Drag & drop**: arraste um arquivo para a janela para abri-lo em nova aba.
 - **Título da janela** acompanha a aba ativa (nome do arquivo + marcador de não salvo).
+- **Barra de status do editor** (canto inferior direito): posição do caret (Ln/Col),
+  codificação e fim de linha do arquivo. Documentos acima de 2 MB mostram só
+  codificação/fim de linha para não custar O(n) por tecla.
 - Editor sem correção automática/previsão: um editor de texto não reescreve o
   texto do usuário silenciosamente.
 - `crash.log` rotaciona automaticamente acima de 512 KB (`crash-prev.log`).
