@@ -12,22 +12,20 @@ antes de criar a tag.**
 - **Refazer (Ctrl+Y)** no menu Editar.
 - **Abrir arquivos por linha de comando**: `Slinky.exe "caminho\arquivo.txt"` abre o
   documento na janela (com foco na aba se já estiver aberto).
+- **Duplo clique no Explorer**: `.txt` agora se associa ao Slinky na instalação;
+  abrir um arquivo do Explorer abre a aba com o documento (a causa raiz do bloqueio
+  de empacotamento anterior está documentada em `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`).
 - **Drag & drop**: arraste um arquivo para a janela para abri-lo em nova aba.
 - **Título da janela** acompanha a aba ativa (nome do arquivo + marcador de não salvo).
 - **Barra de status do editor** (canto inferior direito): posição do caret (Ln/Col),
   codificação e fim de linha do arquivo. Documentos acima de 2 MB mostram só
   codificação/fim de linha para não custar O(n) por tecla.
+- **Tema sincronizado entre instâncias**: trocar o tema numa janela do Slinky aplica
+  nas outras ao ativá-las (as instâncias compartilham a mesma configuração de pacote).
 - Editor sem correção automática/previsão: um editor de texto não reescreve o
   texto do usuário silenciosamente.
 - `crash.log` rotaciona automaticamente acima de 512 KB (`crash-prev.log`).
 - Dependabot semanal para NuGet e GitHub Actions.
-
-**Notas**
-
-- A associação de arquivos por duplo clique (abrir .txt do Explorer) segue
-  pendente: o empacotador self-contained do Windows App SDK reescreve o
-  manifesto e descarta extensões `uap:` (validação de schema falha no
-  MakeAppx) — investigação de empacotamento registrada.
 
 ## v1.0.5
 

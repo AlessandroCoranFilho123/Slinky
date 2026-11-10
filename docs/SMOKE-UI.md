@@ -48,6 +48,13 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 - [ ] Encerrar os dois processos e reabri-los. Cada sessão deve restaurar somente os documentos do processo correspondente, sem duplicar abas.
 - [ ] Em uma nova janela, criar conteúdo não salvo, aguardar o autosave e encerrar o processo sem confirmação. Ao reabrir, o conteúdo deve ser recuperado uma única vez.
 - [ ] Repetir com duas janelas ativas para confirmar que snapshots de um PID não são consumidos nem removidos pelo outro.
+- [ ] Com duas janelas abertas, trocar o tema em uma e ativar a outra. A segunda deve adotar o tema trocado ao receber foco (sincronização por re-leitura da configuração compartilhada; `ThemeSync` coberto por testes headless).
+
+## 6. Associação de arquivos
+
+- [ ] Dar duplo clique em um `.txt` no Explorer. O Slinky deve abrir em aba com o documento e o título da janela deve mostrar o nome do arquivo. Validado por E2E automatizado em 10/11/2026 (`ShellExecuteEx` + ProgId do pacote — rota idêntica ao duplo clique; ver `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`); o clique manual no Explorer segue como confirmação visual.
+
+## 7. Tema e impressão
 
 ## 6. Tema e impressão
 
@@ -61,3 +68,4 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 |---|---|---|---|---|---|
 | 28/10/2026 | 10.0.19045 | x64 | pacote `…_1xsa4dc8b90qj` (dev, commits até `68a0f52`) | Executado em parte (automação UIA) | 15 PASS; zoom numpad e cenários visuais/manuais pendentes; defeito `Ctrl+W` com diálogo aberto — ver `SMOKE-TESTES-2026-10-28.md` |
 | 29/10/2026 | 10.0.19045 | x64 | pacote dev pós-fix de foco | Roteiro completo (UIA + SendInput + capturas) | Clipes/numpad/diálogos/recovery 5.5/paletas PASS; indicador de foco não renderizava — corrigido com `FocusUnderline` e revalidado nos cinco temas — ver `SMOKE-TESTES-2026-10-28.md` (seção 29/10) |
+| 10/11/2026 | 10.0.19045 | x64 | pacote dev 1.0.6.0 com associação de arquivos | Item 6.1 (duplo clique) validado por E2E automatizado | `ShellExecuteEx` + ProgId `AppXhawrr43…` abriu o `.txt` em aba (título `slinky-fua-teste.txt - Slinky`); causa raiz e rota de ativação em `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`. Clique manual no Explorer e demais itens do roteiro pendentes de rodada completa |

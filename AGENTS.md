@@ -73,12 +73,22 @@ Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90
 Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 `PRI249 DESKTOP-EVENTLOG-INSTRUMENTATION`.
 
-## Estado atual (29/10/2026)
+## Estado atual (10/11/2026)
 
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
   defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
-- Versão atual: **1.0.5.0** (release `v1.0.5` no GitHub; anterior v1.0.4) — primeiro release no .NET 10.
+- Versão atual: **1.0.6.0** (release `v1.0.6` no GitHub; anterior v1.0.5).
+- **Associação de arquivos `.txt` FUNCIONANDO** (10/11): causa raiz do bloqueio
+  anterior não era o empacotador — o contêiner sob `<Application>` precisa ser
+  `<Extensions>` do namespace foundation (`uap:Extensions` não existe nesse nível,
+  C00CE014) e o arquivo chega via `FileActivatedEventArgs` (AppLifecycle), não via
+  argv. Correção + evidência E2E: `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`. Os
+  pacotes granulares não projetam o AppLifecycle — há uma `<Reference>` direta a
+  `Microsoft.Windows.AppLifecycle.Projection.dll` no csproj (sincronizar versão
+  com os pacotes ao atualizar).
+- **Tema sincroniza entre instâncias** (10/11): `LocalSettings` é compartilhado por
+  pacote; cada janela re-lê no `Activated` (`ThemeSync.Resolve`, puro e testado).
 - **Release notes**: fonte única em [`RELEASE-NOTES.md`](RELEASE-NOTES.md) — atualize a
   seção da nova release ANTES de criar a tag (`release.yml` usa `body_path` + changelog
   automático). Para editar o corpo de uma release já publicada é preciso token com
@@ -94,7 +104,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
   partida aquecida ~0,4 s até janela / ~0,65 s até editor; 204 MB instalados
   (self-contained).
 - Pacote instalado nesta máquina:
-  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.4.0_x64__1xsa4dc8b90qj`
+  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.6.0_x64__1xsa4dc8b90qj`
   (publisher `CN=Alessandro`, assinatura Developer). O AUMID da seção anterior
   corresponde a essa família.
 - Histórico e causas raiz dos erros de instalação: `docs/INSTALACAO-MSIX.md`.
@@ -123,3 +133,4 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 | [`docs/SMOKE-TESTES-2026-10-28.md`](docs/SMOKE-TESTES-2026-10-28.md) | Registro de 28–29/10: testes, build, MSIX, instalação e lançamento |
 | [`docs/DESEMPENHO-E-TAMANHO.md`](docs/DESEMPENHO-E-TAMANHO.md) | Medições de CPU/RAM/partida/tamanho, experimentos (FDD, GC) e decisões |
 | [`docs/QA-2026-10-30.md`](docs/QA-2026-10-30.md) | QA profundo: codificações, arquivos grandes (limites), stress, integridade de dados, segurança |
+| [`docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`](docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md) | Associação `.txt`: causa raiz do C00CE014, rota de ativação por arquivo e evidência E2E |
