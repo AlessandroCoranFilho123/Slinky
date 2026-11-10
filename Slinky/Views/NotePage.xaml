@@ -83,6 +83,7 @@
                  LostFocus="NoteEditor_LostFocus"
                  AcceptsReturn="True"
                  TextWrapping="Wrap"
+                 KeyUp="NoteEditor_KeyUp"
                  IsSpellCheckEnabled="False"
                  IsTextPredictionEnabled="False"
                  FontFamily="Cascadia Mono, Consolas, monospace"
@@ -118,6 +119,15 @@
                    VerticalAlignment="Bottom"
                    Fill="{x:Bind Theme.Accent, Mode=OneWay}"
                    Visibility="Collapsed"
+                   IsHitTestVisible="False"/>
+
+        <TextBlock x:Name="EditorStatus"
+                   Grid.Row="2"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Bottom"
+                   Margin="0,0,14,8"
+                   FontSize="11"
+                   Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"
                    IsHitTestVisible="False"/>
 
     </Grid>

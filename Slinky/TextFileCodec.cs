@@ -195,4 +195,21 @@ public static class TextFileCodec
             }
             return false;
         }
+
+        public static string EncodingLabel(TextEncodingKind kind) => kind switch
+        {
+            TextEncodingKind.Utf8 => "UTF-8",
+            TextEncodingKind.Utf16LittleEndian => "UTF-16 LE",
+            TextEncodingKind.Utf16BigEndian => "UTF-16 BE",
+            TextEncodingKind.Windows1252 => "Windows-1252",
+            _ => "UTF-8"
+        };
+
+        public static string LineEndingLabel(LineEndingKind kind) => kind switch
+        {
+            LineEndingKind.CrLf => "CRLF",
+            LineEndingKind.Cr => "CR",
+            LineEndingKind.Mixed => "Misto",
+            _ => "LF"
+        };
 }

@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using System;
 using System.Threading.Tasks;
+using Slinky;
 using Slinky.Models;
 using Slinky.Services;
 using Slinky.Diagnostics;
@@ -51,8 +52,38 @@ namespace Slinky.Views
         }
         private Visibility PathRowVisibility(string? path) => string.IsNullOrEmpty(path) ? Visibility.Collapsed : Visibility.Visible;
 
+        private void NoteEditor_KeyUp(object sender, KeyRoutedEventArgs e) => UpdateEditorStatus();
+
+        /// <summary>
+        /// Barra de status do editor (Ln/Col, encoding, EOL). Para documentos acima
+        /// de 2 MB mostra só encoding/EOL: contar linhas por tecla seria O(n).
+        /// </summary>
+        private void UpdateEditorStatus()
+        {
+            var encoding = TextFileCodec.EncodingLabel(noteModel.EncodingKind);
+            var eol = TextFileCodec.LineEndingLabel(noteModel.LineEnding);
+
+            if (noteModel.Text.Length > 2_000_000)
+            {
+                EditorStatus.Text = $"{encoding} · {eol}";
+                return;
+            }
+
+            var texto = NoteEditor.Text;
+            var caret = Math.Min(NoteEditor.SelectionStart, texto.Length);
+            int ln = 1;
+            int ultimaQuebra = -1;
+            for (int i = 0; i < caret && i < texto.Length; i++)
+            {
+                if (texto[i] == '\r') { ln++; ultimaQuebra = i; }
+            }
+            int col = caret - ultimaQuebra;
+            EditorStatus.Text = $"Ln {ln}, Col {col} · {encoding} · {eol}";
+        }
+
         private void NoteEditor_TextChanged(object sender, TextChangedEventArgs e)
         {
+            UpdateEditorStatus();
             if (suppressEditorChange)
             {
                 return;
@@ -73,6 +104,7 @@ namespace Slinky.Views
             FocusUnderline.Visibility = NoteEditor.FocusState == FocusState.Keyboard
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+            UpdateEditorStatus();
         }
 
         private void NoteEditor_LostFocus(object sender, RoutedEventArgs e)

@@ -90,4 +90,17 @@ public sealed class TextFileCodecTests
 
         Assert.Equal("a\r\nb", Encoding.UTF8.GetString(bytes));
     }
+
+    [Fact]
+    public void EncodingAndLineEndingLabelsCoverAllKinds()
+    {
+        Assert.Equal("UTF-8", TextFileCodec.EncodingLabel(TextEncodingKind.Utf8));
+        Assert.Equal("UTF-16 LE", TextFileCodec.EncodingLabel(TextEncodingKind.Utf16LittleEndian));
+        Assert.Equal("UTF-16 BE", TextFileCodec.EncodingLabel(TextEncodingKind.Utf16BigEndian));
+        Assert.Equal("Windows-1252", TextFileCodec.EncodingLabel(TextEncodingKind.Windows1252));
+        Assert.Equal("CRLF", TextFileCodec.LineEndingLabel(LineEndingKind.CrLf));
+        Assert.Equal("LF", TextFileCodec.LineEndingLabel(LineEndingKind.Lf));
+        Assert.Equal("CR", TextFileCodec.LineEndingLabel(LineEndingKind.Cr));
+        Assert.Equal("Misto", TextFileCodec.LineEndingLabel(LineEndingKind.Mixed));
+    }
 }
