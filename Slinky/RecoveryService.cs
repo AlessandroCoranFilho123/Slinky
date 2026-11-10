@@ -103,6 +103,7 @@ namespace Slinky.Services
             var results = new List<(StorageFile, RecoverySnapshot)>();
             var folder = await GetRecoveryFolderAsync();
             var files = await folder.GetFilesAsync();
+            var cutoffUtc = DateTime.UtcNow.AddMinutes(-10);
 
             foreach (var file in files)
             {
@@ -112,8 +113,10 @@ namespace Slinky.Services
                 // estar em voo em outra janela do mesmo pacote.
                 if (file.Name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
                 {
-                    var props = await file.GetBasicPropertiesAsync();
-                    if ((DateTimeOffset.UtcNow - props.DateModified).Duration() < TimeSpan.FromMinutes(10))
+                    // F-12: comparação em UTC (GetLastWriteTimeUtc) — independente do
+                    // fuso do runner; GetBasicPropertiesAsync variava entre ambientes.
+                    var caminho = System.IO.Path.Combine(folder.Path, file.Name);
+                    if (System.IO.File.GetLastWriteTimeUtc(caminho) > cutoffUtc)
                     {
                         continue;
                     }

@@ -105,10 +105,11 @@ namespace Slinky.Services
                 // the write and the atomic replace — never usable, just cleanup.
                 // F-12: só remove .tmp antigo (10 min) — .tmp fresco pode ser de
                 // outra janela viva no meio de uma gravação.
+                var cutoffUtc = DateTime.UtcNow.AddMinutes(-10);
                 foreach (var file in files.Where(f => f.Name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase)))
                 {
-                    var props = await file.GetBasicPropertiesAsync();
-                    if ((DateTimeOffset.UtcNow - props.DateModified).Duration() < TimeSpan.FromMinutes(10))
+                    var caminho = System.IO.Path.Combine(folder.Path, file.Name);
+                    if (System.IO.File.GetLastWriteTimeUtc(caminho) > cutoffUtc)
                     {
                         continue;
                     }
