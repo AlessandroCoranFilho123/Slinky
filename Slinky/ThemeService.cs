@@ -81,6 +81,21 @@ namespace Slinky.Services
             return AppTheme.LightDefault;
         }
 
+        /// <summary>
+        /// Re-reads the theme persisted by any process of the same package and applies
+        /// it when it changed. Called when the window becomes active — the moment a
+        /// stale theme would actually be visible. LocalSettings is package-shared, so
+        /// this is the whole cross-instance sync; no IPC is involved.
+        /// </summary>
+        public void RefreshFromStorage()
+        {
+            ApplicationData.Current.LocalSettings.Values.TryGetValue(ThemeSettingsKey, out var saved);
+            if (ThemeSync.Resolve(saved as string, Current) is AppTheme theme)
+            {
+                Apply(theme);
+            }
+        }
+
         public void Apply(AppTheme theme)
         {
             if (initialized && Current == theme)

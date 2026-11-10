@@ -60,6 +60,9 @@ namespace Slinky
             ThemeService.Instance.ThemeChanged += ThemeService_ThemeChanged;
             NotesTabView.SelectionChanged += (s, e) => UpdateWindowTitle();
             Closed += MainWindow_Closed;
+            // Another instance of the app may have changed the shared theme while this
+            // window was in the background; re-read it the moment the user switches here.
+            Activated += (s, e) => ThemeService.Instance.RefreshFromStorage();
             ApplyElementTheme();
 
             try
