@@ -28,6 +28,9 @@ jobs:
       - name: Rodar testes headless
         run: dotnet test Tests/Slinky.Tests.csproj --configuration Release --no-restore
 
+      - name: Restaurar testes de integração
+        run: dotnet restore Tests/Slinky.IntegrationTests/Slinky.IntegrationTests.csproj
+
       - name: Rodar testes de integração
         run: dotnet test Tests/Slinky.IntegrationTests/Slinky.IntegrationTests.csproj --configuration Release --no-restore
 
