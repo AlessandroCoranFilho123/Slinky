@@ -78,7 +78,9 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
   defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
-- Versão atual: **1.0.6.0** (release `v1.0.6` no GitHub; anterior v1.0.5).
+- Versão atual: **1.0.7.0** (release `v1.0.7` no GitHub; anterior v1.0.6 — a tag
+  `v1.0.6` ficou fixada no commit `6207625`, anterior às melhorias de 10/11;
+  mover tag publicada não é opção, por isso a nova versão).
 - **Associação de arquivos `.txt` FUNCIONANDO** (10/11): causa raiz do bloqueio
   anterior não era o empacotador — o contêiner sob `<Application>` precisa ser
   `<Extensions>` do namespace foundation (`uap:Extensions` não existe nesse nível,
