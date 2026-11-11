@@ -9,7 +9,12 @@
     mc:Ignorable="d"
     Title="Slinky">
 
-    <Grid x:Name="RootGrid" Background="{x:Bind Theme.Background, Mode=OneWay}" Loaded="RootGrid_Loaded" PointerPressed="RootGrid_PointerPressed" Tapped="RootGrid_Tapped" AllowDrop="True" DragOver="RootGrid_DragOver" Drop="RootGrid_DragDrop">
+    <!-- KeyboardAcceleratorPlacementMode="Hidden": os aceleradores globais estao
+         registrados NESTE Grid, que cobre a janela inteira; com o padrao (Auto),
+         deixar o mouse parado sobre uma area nua do Grid (barra de titulo, margens)
+         exibe a tooltip do acelerador ("Ctrl+N") flutuando sobre a interface por
+         varios segundos. Hidden suprime apenas a tooltip — os atalhos continuam. -->
+    <Grid x:Name="RootGrid" Background="{x:Bind Theme.Background, Mode=OneWay}" KeyboardAcceleratorPlacementMode="Hidden" Loaded="RootGrid_Loaded" PointerPressed="RootGrid_PointerPressed" Tapped="RootGrid_Tapped" AllowDrop="True" DragOver="RootGrid_DragOver" Drop="RootGrid_DragDrop">
         <Grid.KeyboardAccelerators>
             <KeyboardAccelerator Key="N" Modifiers="Control" Invoked="NovoAccelerator_Invoked"/>
             <KeyboardAccelerator Key="T" Modifiers="Control" Invoked="NovaAbaAccelerator_Invoked"/>
