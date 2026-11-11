@@ -210,3 +210,7 @@ SmartScreen reputação imediata), mantendo o fluxo atual de CI — apenas o
 certificado/secret mudaria. Enquanto isso não acontecer, o mecanismo atual
 (TrustedPeople + `.cer` publicado junto à release) permanece documentado e
 verificado.
+
+**Decisão do mantenedor (11/11/2026): não adquirir certificado de CA por ora** —
+a assinatura autoassinada com o fluxo atual permanece; a recomendação acima
+vale apenas para quando houver distribuição pública ampla.
