@@ -106,7 +106,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
   partida aquecida ~0,4 s até janela / ~0,65 s até editor; 204 MB instalados
   (self-contained).
 - Pacote instalado nesta máquina:
-  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.6.0_x64__1xsa4dc8b90qj`
+  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.7.0_x64__1xsa4dc8b90qj`
   (publisher `CN=Alessandro`, assinatura Developer). O AUMID da seção anterior
   corresponde a essa família.
 - Histórico e causas raiz dos erros de instalação: `docs/INSTALACAO-MSIX.md`.

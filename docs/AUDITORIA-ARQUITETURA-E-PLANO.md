@@ -174,7 +174,7 @@ Agora:
 - salvar remove o snapshot sem desativar recovery futuro;
 - JSON corrompido é ignorado sem impedir a inicialização.
 
-O recovery ainda restaura o texto como documento não associado ao arquivo original. A reconexão automática ao arquivo continua sendo uma decisão pendente por envolver permissões e conflitos de edição externa.
+O recovery reconecta o texto ao arquivo original (v1.0.5): os snapshots carregam o token FAL estável do caminho (`SessionService.PathToToken`) e a nota reanexa o arquivo ao restaurar; se o token expirou ou o arquivo sumiu, o texto volta como documento não associado.
 
 ## 7. Arquivos recentes
 
@@ -266,9 +266,10 @@ Exigiria:
 - recovery coordenado por aplicação;
 - fechamento independente por janela.
 
-O comportamento atual continua sendo uma janela por processo. O tema permanece um estado
-compartilhado apenas dentro do processo; sessão e recovery deixaram de compartilhar um
-arquivo ativo entre processos.
+O comportamento atual continua sendo uma janela por processo. O tema sincroniza
+entre processos ao ativar a janela (v1.0.7: `LocalSettings` é compartilhado pelo
+pacote e cada janela re-lê no `Activated` — `ThemeSync`; sem IPC); sessão e
+recovery deixaram de compartilhar um arquivo ativo entre processos.
 
 Essa decisão continua pendente.
 
@@ -385,7 +386,7 @@ O script `instalar-slinky.bat`:
 5. ~~Desfazer até o conteúdo salvo limpa `IsDirty`?~~ **Resolvido: não — flag pegajoso**, paridade com o Notepad clássico (evidência: após salvar 'abcd', undo para 'abc' e fechar, o título permaneceu `*a.txt`).
 6. ~~Infraestrutura de testes UI Windows.~~ **Resolvida: `SMOKE-UI.md` + automação** (UIA + SendInput), com registros completos de 28–29/10.
 7. ~~Trimming em produção.~~ **Decisão final deliberada: sem trimming** enquanto os codecs JSON forem reflexivos; build trimmed permanece apenas como diagnóstico na CI.
-8. ~~Fixar SDK por `global.json`.~~ **Decisão: não fixar, com justificativa registrada** — as máquinas de desenvolvimento desta utilizam SDKs 10.0.x/11.0.100-rc (não há SDK 8 instalado localmente, e um `global.json` 8.0 quebraria o ambiente local); a CI fixa o SDK via `setup-dotnet` (8.0.x) e o `TargetFramework net8.0-windows10.0.19041.0` já fixa o alvo independentemente do SDK.
+8. ~~Fixar SDK por `global.json`.~~ **Decisão: não fixar, com justificativa registrada** — as máquinas de desenvolvimento desta utilizam SDKs 10.0.x/11.0.100-rc (um `global.json` que fixe uma versão ausente quebraria o ambiente local); a CI fixa o SDK via `setup-dotnet` (10.0.x) e o `TargetFramework net10.0-windows10.0.19041.0` já fixa o alvo independentemente do SDK.
 
 ## 16. Status consolidado das oito áreas originais
 

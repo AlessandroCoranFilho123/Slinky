@@ -6,10 +6,12 @@ Um editor de texto leve para Windows, feito com WinUI 3. Nasceu da vontade de te
 
 - Abas — várias notas na mesma janela.
 - Documentos de texto (`.txt`, `.log`, `.ini`, `.json`, `.csv` e `.md`), com uma superfície de edição simples e rápida.
-- 5 temas (Claro Padrão/Amarelado, Escuro Padrão/Azulado/Dracula), todos com contraste WCAG AA verificado.
+- Abrir `.txt` por duplo clique no Explorer (a associação é registrada na instalação), por linha de comando (`Slinky.exe "arquivo.txt"`) e por drag & drop na janela.
+- 5 temas (Claro Padrão/Amarelado, Escuro Padrão/Azulado/Dracula), todos com contraste WCAG AA verificado; o tema escolhido se aplica às outras janelas ao ativá-las.
 - Localizar / Localizar e substituir.
 - Impressão com margens, orientação e escala configuráveis.
-- Recuperação automática de conteúdo não salvo após fechamento inesperado.
+- Recuperação automática de conteúdo não salvo após fechamento inesperado, reconectada ao arquivo original.
+- Barra de status do editor (linha/coluna, codificação, fim de linha) e título da janela acompanhando a aba ativa.
 - Menu completo (Arquivo / Editar) com atalhos de teclado reais.
 
 ## Como compilar
@@ -34,8 +36,10 @@ Se a instalação falhar, consulte [`docs/INSTALACAO-MSIX.md`](docs/INSTALACAO-M
 
 O certificado de desenvolvimento é criado ou reutilizado no armazenamento do usuário atual (`CN=Alessandro`) e não é enviado para nenhum lugar. O script usa um certificado compatível com assinatura de pacotes, registra-o em `TrustedPeople` por meio do instalador de desenvolvimento do Windows e pode solicitar confirmação do UAC. Se o Windows bloquear sideloading, habilite o **Modo de Desenvolvedor** em **Configurações → Sistema → Para desenvolvedores**.
 
-Durante a instalação local, o certificado autoassinado também pode ser registrado em
-`TrustedPeople` e `Root` do computador para que o Windows aceite a assinatura do MSIX.
+Durante a instalação local, o certificado autoassinado é registrado em
+`TrustedPeople` do computador para que o Windows aceite a assinatura do MSIX
+(`Root` não é necessário — comprovado por experimento em
+[`docs/AUDITORIA-CERTIFICADOS-2026-11-02.md`](docs/AUDITORIA-CERTIFICADOS-2026-11-02.md)).
 Esse certificado é apenas de desenvolvimento; não é usado nos pacotes de distribuição.
 
 Para instalar um pacote publicado, baixe na [release mais recente](https://github.com/AlessandroCoranFilho123/Slinky/releases/latest) o `.msixbundle`, `Slinky-Release.cer` e `Install-Slinky.ps1` na mesma pasta. Execute `Install-Slinky.ps1` e aceite o UAC: ele valida que o certificado é o signatário do pacote, registra-o em `TrustedPeople` (não em `Root` — comprovado suficiente para MSIX; ver `docs/AUDITORIA-CERTIFICADOS-2026-11-02.md`), remove somente o pacote de identidade do Slinky e instala. Releases anteriores à v1.0.6 publicam o certificado como `Slinky-Development.cer`.
@@ -48,8 +52,10 @@ Os testes automatizados (`Slinky.Tests`, xUnit) cobrem busca/substituição, con
 
 O CI também valida builds x86, x64 e ARM64, gera e inspeciona o MSIX x64, executa
 um smoke test de instalação do pacote e compila o aplicativo com trimming habilitado.
-Testes visuais de interação ainda dependem de uma infraestrutura UI específica do
-Windows e permanecem listados como trabalho futuro.
+Cenários de interação que exigem janela real (recovery E2E, tema entre duas
+instâncias, codificações, stress) têm scripts de automação UIA versionados em
+[`Tests/automation/`](Tests/automation/README.md) — execuções manuais nesta
+máquina, por instabilidade conhecida de timing/reativação MSIX em CI.
 
 O pacote de produção permanece sem trimming deliberadamente: os codecs de sessão,
 recovery e arquivos recentes ainda usam `System.Text.Json` reflexivo. O build
