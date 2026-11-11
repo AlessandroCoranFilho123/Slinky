@@ -19,6 +19,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Toolbar: current file path (blank for a note that's never been saved) -->
@@ -121,11 +122,13 @@
                    Visibility="Collapsed"
                    IsHitTestVisible="False"/>
 
+        <!-- Status bar in its OWN row (below the editor): floating over row 2 made it
+             overlap the last line/scrollbar and get clipped by the window edge. -->
         <TextBlock x:Name="EditorStatus"
-                   Grid.Row="2"
+                   Grid.Row="3"
                    HorizontalAlignment="Right"
-                   VerticalAlignment="Bottom"
-                   Margin="0,0,14,8"
+                   VerticalAlignment="Center"
+                   Margin="0,0,14,4"
                    FontSize="11"
                    Foreground="{x:Bind Theme.Foreground, Mode=OneWay}"
                    IsHitTestVisible="False"/>

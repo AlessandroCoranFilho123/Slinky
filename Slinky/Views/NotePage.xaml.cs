@@ -55,17 +55,19 @@ namespace Slinky.Views
         private void NoteEditor_KeyUp(object sender, KeyRoutedEventArgs e) => UpdateEditorStatus();
 
         /// <summary>
-        /// Barra de status do editor (Ln/Col, encoding, EOL). Para documentos acima
-        /// de 2 MB mostra só encoding/EOL: contar linhas por tecla seria O(n).
+        /// Barra de status do editor (Ln/Col, encoding, EOL, contagem de caracteres).
+        /// Para documentos acima de 2 MB omite Ln/Col: contar linhas por tecla seria
+        /// O(n); a contagem usa string.Length e custa O(1), então permanece sempre.
         /// </summary>
         private void UpdateEditorStatus()
         {
             var encoding = TextFileCodec.EncodingLabel(noteModel.EncodingKind);
             var eol = TextFileCodec.LineEndingLabel(noteModel.LineEnding);
+            var caracteres = NoteEditor.Text.Length.ToString("N0");
 
             if (noteModel.Text.Length > 2_000_000)
             {
-                EditorStatus.Text = $"{encoding} · {eol}";
+                EditorStatus.Text = $"{encoding} · {eol} · {caracteres} caracteres";
                 return;
             }
 
@@ -78,7 +80,7 @@ namespace Slinky.Views
                 if (texto[i] == '\r') { ln++; ultimaQuebra = i; }
             }
             int col = caret - ultimaQuebra;
-            EditorStatus.Text = $"Ln {ln}, Col {col} · {encoding} · {eol}";
+            EditorStatus.Text = $"Ln {ln}, Col {col} · {encoding} · {eol} · {caracteres} caracteres";
         }
 
         private void NoteEditor_TextChanged(object sender, TextChangedEventArgs e)
