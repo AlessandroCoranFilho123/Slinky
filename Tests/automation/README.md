@@ -24,6 +24,7 @@ instalado (`Add-AppxPackage` — ver `docs/INSTALACAO-MSIX.md`), PowerShell 5.1
 |---|---|---|
 | `run-all.ps1` | **Comando único**: testes headless (xUnit) + build Release x64 | `powershell -ExecutionPolicy Bypass -File Tests\automation\run-all.ps1` |
 | `smoke-e2e.ps1` | Recovery E2E: digitar → autosave → crash → Restaurar → conferir conteúdo (2 ciclos) | **manual** — instável em CI (UIA por sleep + cooldown MSIX) |
+| `theme-sync.ps1` | Tema entre duas instâncias: troca em B, ativação de A, fundo pixel-exato contra `ThemePalette`; restaura o tema inicial ao final | **manual** |
 | `encodings.ps1` | Round-trip byte-exato de UTF-8/±BOM/UTF-16 LE/BE/1252/emoji/mistos/vazio | **manual** |
 | `stress.ps1` | 100 abas, 300 edições/undos, buscas e alternâncias, com amostragem de memória/handles | **manual** |
 

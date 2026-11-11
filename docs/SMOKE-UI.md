@@ -48,11 +48,11 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 - [ ] Encerrar os dois processos e reabri-los. Cada sessão deve restaurar somente os documentos do processo correspondente, sem duplicar abas.
 - [ ] Em uma nova janela, criar conteúdo não salvo, aguardar o autosave e encerrar o processo sem confirmação. Ao reabrir, o conteúdo deve ser recuperado uma única vez.
 - [ ] Repetir com duas janelas ativas para confirmar que snapshots de um PID não são consumidos nem removidos pelo outro.
-- [ ] Com duas janelas abertas, trocar o tema em uma e ativar a outra. A segunda deve adotar o tema trocado ao receber foco (sincronização por re-leitura da configuração compartilhada; `ThemeSync` coberto por testes headless).
+- [x] Com duas janelas abertas, trocar o tema em uma e ativar a outra. A segunda deve adotar o tema trocado ao receber foco (sincronização por re-leitura da configuração compartilhada; `ThemeSync` coberto por testes headless). **PASS 10/11/2026** — automatizado em `Tests/automation/theme-sync.ps1`: B trocou para Escuro Padrão (fundo pixel-exato `1E1E1E`) e A, ao ser ativada, adotou o mesmo fundo pixel-exato.
 
 ## 6. Associação de arquivos
 
-- [ ] Dar duplo clique em um `.txt` no Explorer. O Slinky deve abrir em aba com o documento e o título da janela deve mostrar o nome do arquivo. Validado por E2E automatizado em 10/11/2026 (`ShellExecuteEx` + ProgId do pacote — rota idêntica ao duplo clique; ver `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`); o clique manual no Explorer segue como confirmação visual.
+- [x] Abrir um `.txt` via Slinky pelo shell. **PASS 10/11/2026** — E2E automatizado: `ShellExecuteEx` com o ProgId do pacote (`AppXhawrr43…`, registrado em `HKCU\SOFTWARE\Classes\.txt\OpenWithProgids`) abriu o arquivo em aba com o título `slinky-fua-teste.txt - Slinky` (rota idêntica a "Abrir com > Slinky"; ver `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`). Nuance: registrar a associação adiciona o Slinky à lista "Abrir com" — torná-lo o aplicativo **padrão** do `.txt` é uma escolha do usuário no Explorer/Configurações (o `UserChoice` é protegido pelo sistema e não pode ser automatizado). O duplo clique físico com o Slinky definido como padrão segue como confirmação visual manual.
 
 ## 7. Tema e impressão
 
@@ -68,4 +68,4 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 |---|---|---|---|---|---|
 | 28/10/2026 | 10.0.19045 | x64 | pacote `…_1xsa4dc8b90qj` (dev, commits até `68a0f52`) | Executado em parte (automação UIA) | 15 PASS; zoom numpad e cenários visuais/manuais pendentes; defeito `Ctrl+W` com diálogo aberto — ver `SMOKE-TESTES-2026-10-28.md` |
 | 29/10/2026 | 10.0.19045 | x64 | pacote dev pós-fix de foco | Roteiro completo (UIA + SendInput + capturas) | Clipes/numpad/diálogos/recovery 5.5/paletas PASS; indicador de foco não renderizava — corrigido com `FocusUnderline` e revalidado nos cinco temas — ver `SMOKE-TESTES-2026-10-28.md` (seção 29/10) |
-| 10/11/2026 | 10.0.19045 | x64 | pacote dev 1.0.6.0 com associação de arquivos | Item 6.1 (duplo clique) validado por E2E automatizado | `ShellExecuteEx` + ProgId `AppXhawrr43…` abriu o `.txt` em aba (título `slinky-fua-teste.txt - Slinky`); causa raiz e rota de ativação em `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`. Clique manual no Explorer e demais itens do roteiro pendentes de rodada completa |
+| 10/11/2026 | 10.0.19045 | x64 | pacote dev 1.0.7.0 | Itens 5.6 (tema entre janelas) e 6.1 (associação) validados por E2E automatizado | Tema: `Tests/automation/theme-sync.ps1` — A/B sincronizadas pixel-exato (`FFFFFF` → `1E1E1E`). Associação: `ShellExecuteEx` + ProgId `AppXhawrr43…` abriu o `.txt` em aba (título `slinky-fua-teste.txt - Slinky`); causa raiz e rota em `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`. Demais itens do roteiro pendentes de rodada completa |
