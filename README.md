@@ -11,7 +11,7 @@ Um editor de texto leve para Windows, feito com WinUI 3. Nasceu da vontade de te
 - Localizar / Localizar e substituir.
 - Impressão com margens, orientação e escala configuráveis.
 - Recuperação automática de conteúdo não salvo após fechamento inesperado, reconectada ao arquivo original.
-- Barra de status do editor (linha/coluna, codificação, fim de linha) e título da janela acompanhando a aba ativa.
+- Barra de status do editor (linha/coluna, codificação, fim de linha, quantidade de caracteres) e título da janela acompanhando a aba ativa.
 - Menu completo (Arquivo / Editar) com atalhos de teclado reais.
 
 ## Como compilar

@@ -78,7 +78,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
   defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
-- Versão atual: **1.0.8.0** (release `v1.0.7` no GitHub; a v1.0.8 ainda não foi
+- Versão atual: **1.0.9.0** (release `v1.0.8` no GitHub; a v1.0.9 ainda não foi
   taggada — RELEASE-NOTES prontos). A tag `v1.0.6` ficou fixada no commit
   `6207625`, anterior às melhorias de 10/11; mover tag publicada não é opção,
   por isso as versões avançam sem mover tags.
@@ -113,7 +113,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
   partida aquecida ~0,4 s até janela / ~0,65 s até editor; 204 MB instalados
   (self-contained).
 - Pacote instalado nesta máquina:
-  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.8.0_x64__1xsa4dc8b90qj`
+  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.9.0_x64__1xsa4dc8b90qj`
   (publisher `CN=Alessandro`, assinatura Developer). O AUMID da seção anterior
   corresponde a essa família.
 - Histórico e causas raiz dos erros de instalação: `docs/INSTALACAO-MSIX.md`.

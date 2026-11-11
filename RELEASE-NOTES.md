@@ -5,6 +5,16 @@ como `body_path` (com `generate_release_notes: false` — a action v2 substituí
 corpo curado pelo changelog automático). **Atualize a seção da nova release aqui
 antes de criar a tag.**
 
+## v1.0.9
+
+**Melhorias**
+
+- **Barra de status em linha própria**: o resumo (Ln/Col, codificação, fim de
+  linha) ganhou uma linha dedicada abaixo do editor — antes ele flutuava sobre o
+  texto, sobrepondo a última linha/scrollbar e podendo ser cortado na borda.
+- **Contagem de caracteres** na barra de status (custo O(1) por tecla; documentos
+  acima de 2 MB continuam sem Ln/Col para não escanear o texto por tecla).
+
 ## v1.0.8
 
 **Correções**
