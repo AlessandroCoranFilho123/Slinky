@@ -38,6 +38,7 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 
 - [ ] Validar `Ctrl++` e `Ctrl+-` no teclado principal e no numérico, além de `Ctrl+0` e `Ctrl+NumPad0`.
 - [ ] Validar `Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S`, `Ctrl+W`, `Ctrl+F`, `Ctrl+H` e `Ctrl+P`.
+- [x] Deixar o mouse parado sobre a barra de título/áreas sem controles não pode exibir tooltip de acelerador ("Ctrl+N" flutuando). **PASS 11/11/2026** — automatizado em `Tests/automation/accelerators.ps1` (pixel-diff da captura com margem: 457 px no 1.0.7.0 com defeito → 0 px no 1.0.8.0; atalhos vivos verificados no mesmo script). Causa raiz em `docs/ATALHOS-TOOLTIP-2026-11-11.md`.
 - [ ] Modificar uma nota e abrir a confirmação de fechamento. Enquanto o diálogo estiver aberto, atalhos não devem executar comandos na janela ao fundo.
 - [ ] Testar separadamente salvar, descartar e cancelar. Cancelar deve manter a aba e o conteúdo modificados.
 
@@ -69,3 +70,4 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 | 28/10/2026 | 10.0.19045 | x64 | pacote `…_1xsa4dc8b90qj` (dev, commits até `68a0f52`) | Executado em parte (automação UIA) | 15 PASS; zoom numpad e cenários visuais/manuais pendentes; defeito `Ctrl+W` com diálogo aberto — ver `SMOKE-TESTES-2026-10-28.md` |
 | 29/10/2026 | 10.0.19045 | x64 | pacote dev pós-fix de foco | Roteiro completo (UIA + SendInput + capturas) | Clipes/numpad/diálogos/recovery 5.5/paletas PASS; indicador de foco não renderizava — corrigido com `FocusUnderline` e revalidado nos cinco temas — ver `SMOKE-TESTES-2026-10-28.md` (seção 29/10) |
 | 10/11/2026 | 10.0.19045 | x64 | pacote dev 1.0.7.0 | Itens 5.6 (tema entre janelas) e 6.1 (associação) validados por E2E automatizado | Tema: `Tests/automation/theme-sync.ps1` — A/B sincronizadas pixel-exato (`FFFFFF` → `1E1E1E`). Associação: `ShellExecuteEx` + ProgId `AppXhawrr43…` abriu o `.txt` em aba (título `slinky-fua-teste.txt - Slinky`); causa raiz e rota em `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`. Demais itens do roteiro pendentes de rodada completa |
+| 11/11/2026 | 10.0.19045 | x64 | pacote dev 1.0.8.0 | Item 4.x (tooltip de acelerador) validado por E2E automatizado | `Tests/automation/accelerators.ps1`: 457 px no 1.0.7.0 (tooltip visível) → 0 px no 1.0.8.0 (corrigido), atalhos vivos no mesmo script; `theme-sync.ps1` PASS como regressão. Causa raiz em `docs/ATALHOS-TOOLTIP-2026-11-11.md` |

@@ -5,6 +5,17 @@ como `body_path` (com `generate_release_notes: false` — a action v2 substituí
 corpo curado pelo changelog automático). **Atualize a seção da nova release aqui
 antes de criar a tag.**
 
+## v1.0.8
+
+**Correções**
+
+- O popup "Ctrl+N" que surgia sozinho sobre a interface (e demorava a sumir) não
+  existe mais: os atalhos globais são registrados no Grid raiz, e deixar o mouse
+  parado sobre uma área sem controles (barra de título, margens) exibia a tooltip
+  do acelerador ali. A tooltip foi suprimida (`KeyboardAcceleratorPlacementMode=
+  "Hidden"`) sem alterar nenhum atalho. Causa raiz e evidência:
+  `docs/ATALHOS-TOOLTIP-2026-11-11.md`.
+
 ## v1.0.7
 
 **Novidades**

@@ -78,9 +78,16 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
   defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
-- Versão atual: **1.0.7.0** (release `v1.0.7` no GitHub; anterior v1.0.6 — a tag
-  `v1.0.6` ficou fixada no commit `6207625`, anterior às melhorias de 10/11;
-  mover tag publicada não é opção, por isso a nova versão).
+- Versão atual: **1.0.8.0** (release `v1.0.7` no GitHub; a v1.0.8 ainda não foi
+  taggada — RELEASE-NOTES prontos). A tag `v1.0.6` ficou fixada no commit
+  `6207625`, anterior às melhorias de 10/11; mover tag publicada não é opção,
+  por isso as versões avançam sem mover tags.
+- **Tooltip de acelerador suprimida (11/11)**: os aceleradores globais vivem no
+  Grid raiz; com `KeyboardAcceleratorPlacementMode` padrão, o hover sobre áreas
+  nuas (barra de título) exibia "Ctrl+N" flutuando. Fix = `Hidden` no RootGrid;
+  E2E em `Tests/automation/accelerators.ps1` (detalhe: a tooltip NÃO é elemento
+  UIA ToolTip e sai quase toda acima do topo da janela — detectar por pixel-diff
+  de captura com margem). `docs/ATALHOS-TOOLTIP-2026-11-11.md`.
 - **Associação de arquivos `.txt` FUNCIONANDO** (10/11): causa raiz do bloqueio
   anterior não era o empacotador — o contêiner sob `<Application>` precisa ser
   `<Extensions>` do namespace foundation (`uap:Extensions` não existe nesse nível,
