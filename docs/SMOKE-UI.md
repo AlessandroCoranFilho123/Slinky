@@ -45,6 +45,7 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 
 ## 5. Sessão, recovery e dois processos
 
+- [x] Abrir diferentes `.txt` pelo Explorer concentra tudo em abas **na mesma janela** (single-instancing); **Nova janela** continua criando janelas de propósito. **PASS 17/11/2026** — automatizado em `Tests/automation/single-instance.ps1`: abrir `a.txt` e `b.txt` pela rota FUA → 1 processo, 2 abas (foto `docs/smoke-fotos/2026-11-17/single-instancia-abas.png`); Nova janela → 2 processos. Causa raiz e armadilhas em `docs/JANELA-UNICA-ABAS-2026-11-17.md`.
 - [ ] Abrir duas janelas por **Nova janela**, anotar os PIDs e manter arquivos diferentes abertos em cada uma.
 - [ ] Fechar normalmente apenas uma janela. A outra deve continuar editável e sua sessão/recovery não deve ser apagado.
 - [ ] Encerrar os dois processos e reabri-los. Cada sessão deve restaurar somente os documentos do processo correspondente, sem duplicar abas.
