@@ -45,5 +45,16 @@ namespace Slinky
                 .Select(p => p!.Trim())
                 .FirstOrDefault(fileExists);
         }
+
+        /// <summary>
+        /// "Nova janela" lança o exe com este flag para que a instância nova NÃO
+        /// redirecione para a janela principal (multi-janela é intencional); ativações
+        /// do shell sem o flag concentram-se na janela principal em abas.
+        /// </summary>
+        public static bool HasNewWindowFlag(string? arguments)
+        {
+            return arguments is not null
+                && arguments.IndexOf("--new-window", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
     }
 }

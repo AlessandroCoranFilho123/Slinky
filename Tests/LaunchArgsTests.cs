@@ -48,5 +48,18 @@ namespace Slinky.Tests
             Assert.Equal("C:/a.txt", LaunchArgs.ExtractFirstExisting(paths, _ => true));
             Assert.Null(LaunchArgs.ExtractFirstExisting(new string?[] { null, "" }, _ => true));
         }
+
+        [Theory]
+        [InlineData("--new-window", true)]
+        [InlineData("C:/a.txt --new-window", true)]
+        [InlineData("--NEW-WINDOW", true)]
+        [InlineData(null, false)]
+        [InlineData("", false)]
+        [InlineData("C:/a.txt", false)]
+        [InlineData("--new window", false)]
+        public void HasNewWindowFlag_DetectaOFlagDeNovaJanela(string? arguments, bool esperado)
+        {
+            Assert.Equal(esperado, LaunchArgs.HasNewWindowFlag(arguments));
+        }
     }
 }

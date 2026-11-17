@@ -193,6 +193,11 @@ namespace Slinky
                     PendingLaunchPath = null;
                     await OpenPathAsync(caminho);
                 }
+                foreach (var caminho in pendingExternalOpens)
+                {
+                    await OpenPathAsync(caminho);
+                }
+                pendingExternalOpens.Clear();
                 UpdateWindowTitle();
             }
         }
@@ -472,6 +477,24 @@ namespace Slinky
         /// <summary>Caminho de documento recebido na ativação (associação de arquivos / "Abrir com"), aberto após o restore.</summary>
         public string? PendingLaunchPath { get; set; }
 
+        /// <summary>
+        /// Caminhos chegando enquanto o startup ainda restaura sessão/recovery (ativas
+        /// redirecionadas por single-instancing): enfileirados até o restore terminar
+        /// para não disputar com ele; depois, abertura imediata.
+        /// </summary>
+        private readonly List<string> pendingExternalOpens = new();
+
+        public void EnqueueOpenPath(string path)
+        {
+            if (startupRestorationInProgress)
+            {
+                pendingExternalOpens.Add(path);
+                return;
+            }
+
+            _ = OpenPathAsync(path);
+        }
+
         /// <summary>Atualiza o título da janela com o estado da aba ativa (nome + marcador de não salvo).</summary>
         private void UpdateWindowTitle()
         {
@@ -707,6 +730,7 @@ namespace Slinky
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = exePath,
+                    Arguments = "--new-window",
                     UseShellExecute = true
                 });
             }
