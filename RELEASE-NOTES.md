@@ -5,6 +5,17 @@ como `body_path` (com `generate_release_notes: false` — a action v2 substituí
 corpo curado pelo changelog automático). **Atualize a seção da nova release aqui
 antes de criar a tag.**
 
+## v1.0.10
+
+**Correções**
+
+- **Abrir vários arquivos concentra em uma janela**: duplo clique/"Abrir com" em
+  diferentes `.txt` agora abre cada documento como **aba na janela já aberta**
+  em vez de criar uma janela nova por arquivo (single-instancing com
+  redirecionamento via AppLifecycle). **Nova janela** (menu Arquivo) continua
+  funcionando e criando janelas de propósito
+  (`docs/JANELA-UNICA-ABAS-2026-11-17.md`).
+
 ## v1.0.9
 
 **Melhorias**
