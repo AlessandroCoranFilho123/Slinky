@@ -90,6 +90,11 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
   amarrado à janela morta e nunca mais lê as janelas recriadas (valor vazio,
   0 edits) — leituras de UIA pós-kill SEMPRE em powershell filho novo; asserts
   de recovery por DISCO (snapshot contém o texto) + foto visual.
+- **Dependabot major bump do DWrite REJEITADO (18/11)**: `Microsoft.WindowsAppSDK.DWrite`
+  2.6.5 é incompatível com o Runtime 1.8 — a CI bloqueia (`Runtime expected
+  version 1.8.25090401`). Os pacotes granulares devem ficar na MESMA linha
+  (WinUI/Runtime/DWrite 1.8.x); recusar major bumps isolados de componentes
+  (o bump do DWrite só se reconsidera com a linha 2.x do Runtime adotada).
 - **Single-instancing (17/11)**: arquivos abertos pelo shell concentram em abas
   na janela principal viva (`AppInstance.GetInstances()` + chave `principal-{pid}`
   + fila em LocalSettings); **Nova janela** usa `--new-window` (argv —
