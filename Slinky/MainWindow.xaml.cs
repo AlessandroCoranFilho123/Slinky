@@ -152,6 +152,15 @@ namespace Slinky
             // stale when both themes share the same Light/Dark ElementTheme.
             AplicarRecursosAba(NotesTabView.Resources);
 
+            // CRITICAL: the "+" button lives in the TabView TEMPLATE, OUTSIDE every
+            // tab item — the RequestedTheme nudge applied to each tabItem never
+            // reaches it, so its {ThemeResource} values stay frozen at whatever
+            // palette was active when the TabView first materialized (reported: white
+            // "+" in dark mode with a black hover). Forcing Default -> ElementTheme on
+            // the TabView re-evaluates the whole template subtree, including the "+".
+            NotesTabView.RequestedTheme = ElementTheme.Default;
+            NotesTabView.RequestedTheme = theme.ElementTheme;
+
             tabThemeStates.Apply(theme.Current);
         }
 
@@ -188,10 +197,11 @@ namespace Slinky
             resources["TabViewItemHeaderCloseButtonForegroundPointerOver"] = theme.Foreground;
             resources["TabViewItemHeaderCloseButtonForegroundPressed"] = theme.Foreground;
 
-            // the "+" button of the TabView
+            // the "+" button of the TabView (hover/pressed = the resting color: no
+            // flash — matches the user expectation of "the normal color" on hover)
             resources["TabViewButtonBackground"] = theme.Surface;
-            resources["TabViewButtonBackgroundPointerOver"] = theme.Background;
-            resources["TabViewButtonBackgroundPressed"] = theme.Surface;
+            resources["TabViewButtonBackgroundPointerOver"] = theme.Surface;
+            resources["TabViewButtonBackgroundPressed"] = theme.Background;
             resources["TabViewButtonForeground"] = theme.Foreground;
             resources["TabViewButtonForegroundPointerOver"] = theme.Foreground;
             resources["TabViewButtonForegroundPressed"] = theme.Foreground;

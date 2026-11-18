@@ -1,4 +1,4 @@
-# Automação de interface — Slinky
+﻿# Automação de interface — Slinky
 
 Scripts de validação de interface executados contra o **pacote de desenvolvimento
 instalado** (família `46cebc95-…_1xsa4dc8b90qj`). Requisitos: Windows com o pacote
@@ -29,6 +29,7 @@ instalado (`Add-AppxPackage` — ver `docs/INSTALACAO-MSIX.md`), PowerShell 5.1
 | `statusbar.ps1` | Barra de status em 6 cenários (novo doc, digitação, LF, Windows-1252, >2 MB, tema escuro) com assert por UIA e **fotos** em `docs/smoke-fotos/<data>/`; abre arquivos pela rota FUA (ProgId) | **manual** |
 | `single-instance.ps1` | Arquivos abertos pelo shell concentram em abas na mesma janela (redirect AppLifecycle); Nova janela segue multi-janela; **foto** final | **manual** |
 | `tab-hover.ps1` | Hover das abas sem flash azul-accent: 8 areas × temas claro/escuro por CopyFromScreen; fotos por caso | **manual** |
+| `theme-switch-plus.ps1` | Sequencia do relato (claro → Azulado → Escuro → criar aba → hover): sem paleta clara preservada no botao "+" nem azul; fotos | **manual** |
 | `encodings.ps1` | Round-trip byte-exato de UTF-8/±BOM/UTF-16 LE/BE/1252/emoji/mistos/vazio | **manual** |
 | `stress.ps1` | 100 abas, 300 edições/undos, buscas e alternâncias, com amostragem de memória/handles | **manual** |
 
