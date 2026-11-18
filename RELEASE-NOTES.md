@@ -5,6 +5,31 @@ como `body_path` (com `generate_release_notes: false` — a action v2 substituí
 corpo curado pelo changelog automático). **Atualize a seção da nova release aqui
 antes de criar a tag.**
 
+## v1.0.11
+
+**Robustez (auditoria byte a byte da single-instancing)**
+
+- **Falha no redirect não deixa mais o app zumbi**: se a janela principal morrer
+  ou travar entre o check e o redirecionamento, a nova instância assume a janela
+  e abre o documento (antes: `WaitOne` sem timeout podia travar para sempre);
+  timeout de 10 s no redirect.
+- **Nada se perde na fila**: pendências de instâncias que falharam no redirect
+  são drenadas e abertas pelo próximo launch (antes eram descartadas).
+- **Seleção múltipla no Explorer**: "Abrir com" com vários arquivos abre todos
+  como abas (antes só o primeiro).
+- **Token exato para `--new-window`**: um arquivo cujo nome contenha o texto
+  não dispara mais o flag; argv validado por token (a WinUI devolve
+  `Arguments` vazio em launches por `Process.Start` — fonte confiável é
+  `GetCommandLineArgs`).
+- **Fila protegida por mutex nomeado**: duplo-cliques quase simultâneos não
+  perdem mais itens na leitura-merge-escrita do LocalSettings.
+- Chaves de instância com GUID — imunes a PIDs reciclados e chaves órfãs.
+
+**Correção**
+
+- **Arquivo de 0 bytes abre normalmente** (antes: "Não foi possível abrir o
+  arquivo" — `CopyToByteArray` devolve null para arquivo vazio).
+
 ## v1.0.10
 
 **Correções**

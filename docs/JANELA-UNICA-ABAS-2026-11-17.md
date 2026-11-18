@@ -43,13 +43,17 @@ mecanismo de instância única/redirecionamento do AppLifecycle.
    abrupta (race documentada de auto-unregister): toda ativação seguinte
    redirecionava para a instância morta e o app **saía sem abrir nada**
    (0 processos, sem crash.log — `Application.Current.Exit()` silencioso).
-   Correção: chave por PID + `GetInstances()` com verificação de vida
-   (`Process.GetProcessById`/`HasExited` em try/catch).
+   Correção final (auditoria 17/11): chave com **GUID** (`principal-{pid}-{guid}`)
+   — `FindOrRegisterForKey` nunca colide; o alvo é procurado por
+   `GetInstances()` + verificação de vida do processo.
 3. **`RedirectActivationToAsync` precisa COMPLETAR antes do exit** ("the
    calling app must wait for the method to complete, otherwise the redirection
    will fail") — padrão oficial: redirect em `Task.Run` + `Semaphore`, sem
    bloquear a STA diretamente
    ([doc oficial de instancing](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/applifecycle/applifecycle-instancing)).
+   **Auditoria 17/11**: com timeout de 10 s e **fallback** — se o alvo morrer
+   entre o check e o redirect, a instância assume a janela em vez de sair
+   sem abrir nada.
 4. Na projeção do WinAppSDK 1.8, `AppActivationArguments` vive em
    **`Microsoft.Windows.AppLifecycle`** (não `Microsoft.Windows.AppModel`), o
    evento `Activated` é `EventHandler<AppActivationArguments>`, não existe
@@ -57,6 +61,15 @@ mecanismo de instância única/redirecionamento do AppLifecycle.
    `uint`.
 5. `ExternalOpenQueuePolicy.TakeAll` tolera JSON inválido/obsoleto (lista
    vazia) — um log corrompido nunca pode impedir a abertura de um arquivo.
+
+## Robustez da auditoria de 17/11 (docs/QA-2026-11-17.md)
+
+- redirect com **timeout + fallback** (A1); fila **drenada no startup** em vez
+  de descartada (A2); chave com GUID (A3); **seleção múltipla** do Explorer
+  abre todos os arquivos como abas (A4); `--new-window` por **token exato** (A5);
+  fila protegida por **mutex nomeado** (A6); arquivo de **0 bytes** abre
+  (A7 — `CopyToByteArray` pode devolver null). Evidência completa e bateria
+  em `docs/QA-2026-11-17.md`.
 
 ## Não-regressão e evidência
 

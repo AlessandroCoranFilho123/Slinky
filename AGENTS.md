@@ -78,10 +78,18 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
   defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
-- Versão atual: **1.0.10.0** (release `v1.0.8` no GitHub; v1.0.9 e v1.0.10 ainda
+- Versão atual: **1.0.11.0** (release `v1.0.8` no GitHub; v1.0.9 a v1.0.11 ainda
   não taggadas — RELEASE-NOTES prontos). A tag `v1.0.6` ficou fixada no commit
   `6207625`, anterior às melhorias de 10/11; mover tag publicada não é opção,
   por isso as versões avançam sem mover tags.
+- **Auditoria da single-instancing (17/11, `docs/QA-2026-11-17.md`)**: 7 achados
+  corrigidos (redirect com timeout+fallback, fila drenada no startup, GUID na
+  chave, seleção múltipla, token exato, mutex na fila, **arquivo de 0 bytes
+  abre**). Bateria: smoke-e2e reescrito como **orquestrador + powershell filho**
+  (`e2e-child.ps1`) — o client UIA do processo que executa `Stop-Process` fica
+  amarrado à janela morta e nunca mais lê as janelas recriadas (valor vazio,
+  0 edits) — leituras de UIA pós-kill SEMPRE em powershell filho novo; asserts
+  de recovery por DISCO (snapshot contém o texto) + foto visual.
 - **Single-instancing (17/11)**: arquivos abertos pelo shell concentram em abas
   na janela principal viva (`AppInstance.GetInstances()` + chave `principal-{pid}`
   + fila em LocalSettings); **Nova janela** usa `--new-window` (argv —
@@ -119,7 +127,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
   partida aquecida ~0,4 s até janela / ~0,65 s até editor; 204 MB instalados
   (self-contained).
 - Pacote instalado nesta máquina:
-  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.10.0_x64__1xsa4dc8b90qj`
+  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.11.0_x64__1xsa4dc8b90qj`
   (publisher `CN=Alessandro`, assinatura Developer). O AUMID da seção anterior
   corresponde a essa família.
 - Histórico e causas raiz dos erros de instalação: `docs/INSTALACAO-MSIX.md`.
@@ -150,3 +158,4 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 | [`docs/QA-2026-10-30.md`](docs/QA-2026-10-30.md) | QA profundo: codificações, arquivos grandes (limites), stress, integridade de dados, segurança |
 | [`docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`](docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md) | Associação `.txt`: causa raiz do C00CE014, rota de ativação por arquivo e evidência E2E |
 | [`docs/JANELA-UNICA-ABAS-2026-11-17.md`](docs/JANELA-UNICA-ABAS-2026-11-17.md) | Single-instancing com abas: design, armadilhas (argv vazio, chave órfã) e evidência E2E |
+| [`docs/QA-2026-11-17.md`](docs/QA-2026-11-17.md) | Auditoria da single-instancing: 7 achados corrigidos + bateria completa (byte a byte) |
