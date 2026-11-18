@@ -110,6 +110,12 @@ namespace Slinky.Models
             {
                 var buffer = await FileIO.ReadBufferAsync(fileToOpen);
                 CryptographicBuffer.CopyToByteArray(buffer, out var bytes);
+                // Arquivo de 0 bytes: CopyToByteArray pode devolver null — um documento
+                // vazio e legitimo (Notepad abre), trata como texto vazio.
+                if (bytes is null)
+                {
+                    bytes = Array.Empty<byte>();
+                }
                 // F-18: limite de tamanho medido (100 MB abre com ~5 GB de RAM) e
                 // recusa de conteúdo binário — salvar depois corromperia o arquivo.
                 if (bytes.Length > 100 * 1024 * 1024)
@@ -349,6 +355,7 @@ namespace Slinky.Models
         private async void AutosaveTimer_Tick(object? sender, object e)
         {
             autosaveTimer?.Stop();
+            try { System.IO.File.AppendAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "slinky-autosave.log"), DateTime.Now.ToString("HH:mm:ss.fff") + " tick: textLen=" + Text.Length + " dirty=" + IsDirty + " canSchedule=" + recoveryLifecycle.CanSchedule.ToString().ToLowerInvariant() + Environment.NewLine); } catch { }
 
             // F-07: não agenda com tick em voo — evita fila de serializações.
             if (autosaveInFlight || !recoveryLifecycle.CanSchedule || !IsDirty)

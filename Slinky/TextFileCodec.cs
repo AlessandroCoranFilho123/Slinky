@@ -43,6 +43,12 @@ public static class TextFileCodec
 
     public static DecodedText Decode(ReadOnlySpan<byte> bytes)
     {
+        // arquivo vazio e um documento valido: texto vazio, UTF-8, sem BOM
+        if (bytes.Length == 0)
+        {
+            return new DecodedText(string.Empty, TextEncodingKind.Utf8, false, LineEndingKind.CrLf);
+        }
+
         var encoding = DetectEncoding(bytes, out var offset, out var hasBom);
         var text = encoding.GetString(bytes[offset..]);
 

@@ -3,6 +3,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Slinky.Services;
@@ -52,54 +53,88 @@ namespace Slinky
             //
             // argv: args.Arguments (WinUI) vem VAZIO em lançamentos por Process.Start
             // do exe empacotado — a fonte confiável de argv é GetCommandLineArgs.
-            var argv = string.Join(' ', Environment.GetCommandLineArgs().Skip(1));
-            var isNewWindow = LaunchArgs.HasNewWindowFlag(argv);
+            var isNewWindow = LaunchArgs.HasNewWindowFlag(Environment.GetCommandLineArgs().Skip(1))
+                || LaunchArgs.HasNewWindowFlag(args.Arguments);
 
             if (!isNewWindow)
             {
                 var alvo = EncontrarInstanciaPrincipal();
                 if (alvo is not null)
                 {
-                    // Instância extra: encaminha o documento pela fila compartilhada (o
-                    // Data do redirect não sobrevive a ativações por linha de comando),
-                    // redireciona e sai sem criar janela. O redirect tem que COMPLETAR
-                    // antes do exit ("must wait for the method to complete, otherwise
-                    // the redirection will fail") — por isso roda em Task.Run com
-                    // Semaphore, sem bloquear a STA diretamente (padrão da doc oficial
-                    // de single-instancing).
-                    if (ExtractActivatedPath(args, argv) is string caminho)
+                    // Instância extra: encaminha TODOS os documentos pela fila
+                    // compartilhada (o Data do redirect não sobrevive a ativações por
+                    // linha de comando), redireciona e sai sem criar janela. O redirect
+                    // tem que COMPLETAR antes do exit ("must wait for the method to
+                    // complete, otherwise the redirection will fail") — roda em Task.Run
+                    // com Semaphore, sem bloquear a STA diretamente (padrão da doc
+                    // oficial de single-instancing).
+                    foreach (var caminho in ExtractActivatedPaths(args))
                     {
                         Slinky.Services.ExternalOpenQueue.Enqueue(caminho);
                     }
 
                     var redirectArgs = Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs();
                     var redirectConcluido = new System.Threading.Semaphore(0, 1);
+                    var redirecionou = false;
                     System.Threading.Tasks.Task.Run(() =>
                     {
-                        alvo.RedirectActivationToAsync(redirectArgs).AsTask().Wait();
-                        redirectConcluido.Release();
+                        try
+                        {
+                            alvo.RedirectActivationToAsync(redirectArgs).AsTask().Wait();
+                            redirecionou = true;
+                        }
+                        catch
+                        {
+                            // alvo morreu/travou entre o check e o redirect: a fila fica
+                            // retida e ESTA instância assume a janela (fallback abaixo).
+                        }
+                        finally
+                        {
+                            redirectConcluido.Release();
+                        }
                     });
-                    redirectConcluido.WaitOne();
+                    // timeout: um alvo travado não pode deixar este launch como zumbi
+                    redirectConcluido.WaitOne(TimeSpan.FromSeconds(10));
 
-                    Application.Current.Exit();
-                    return;
+                    if (redirecionou)
+                    {
+                        Application.Current.Exit();
+                        return;
+                    }
+                    // fallback: segue como janela; o path já está na fila e o startup
+                    // abaixo drena e abre.
                 }
             }
 
             // Nenhuma principal viva (ou lançamento "Nova janela"): esta instância
-            // assume a janela. Chave com PID — chaves órfãs de processos mortos nunca
-            // colidem com a própria (FindOrRegisterForKey de chave fixa retornaria uma
-            // instância morta e o app sairia sem abrir).
+            // assume a janela. Chave com GUID — nunca colide com chaves órfãs de
+            // processos mortos nem com PIDs reciclados (FindOrRegisterForKey de chave
+            // existente retornaria uma instância morta).
             var instancia = Microsoft.Windows.AppLifecycle.AppInstance.FindOrRegisterForKey(
-                isNewWindow ? $"janela-{Environment.ProcessId}" : $"principal-{Environment.ProcessId}");
+                (isNewWindow ? "janela-" : "principal-")
+                + Environment.ProcessId + "-" + Guid.NewGuid().ToString("N"));
             instancia.Activated += PrincipalInstance_Activated;
 
-            Slinky.Services.ExternalOpenQueue.Clear();
             _window = new MainWindow();
             Window = _window;
-            if (ExtractActivatedPath(args, argv) is string filePath)
+
+            // Pendências de instâncias que falharam no redirect: nada se perde — drena
+            // e abre junto com os documentos desta ativação.
+            var caminhos = ExtractActivatedPaths(args);
+            foreach (var pendente in Slinky.Services.ExternalOpenQueue.Drain())
             {
-                ((MainWindow)_window).PendingLaunchPath = filePath;
+                ((MainWindow)_window).EnqueueOpenPath(pendente);
+            }
+            for (var i = 0; i < caminhos.Count; i++)
+            {
+                if (i == 0)
+                {
+                    ((MainWindow)_window).PendingLaunchPath = caminhos[0];
+                }
+                else
+                {
+                    ((MainWindow)_window).EnqueueOpenPath(caminhos[i]);
+                }
             }
             _window.Activate();
         }
@@ -113,10 +148,11 @@ namespace Slinky
         {
             foreach (var inst in Microsoft.Windows.AppLifecycle.AppInstance.GetInstances())
             {
+                var vivo = inst.ProcessId != Environment.ProcessId && ProcessoVivo((int)inst.ProcessId);
                 if (inst.Key is not null
                     && inst.Key.StartsWith("principal-", StringComparison.Ordinal)
                     && inst.ProcessId != Environment.ProcessId
-                    && ProcessoVivo((int)inst.ProcessId))
+                    && vivo)
                 {
                     return inst;
                 }
@@ -124,6 +160,7 @@ namespace Slinky
 
             return null;
         }
+
 
         private static bool ProcessoVivo(int pid)
         {
@@ -139,57 +176,29 @@ namespace Slinky
         }
 
         /// <summary>
-        /// Caminho do documento desta ativação: três canais de entrega.
-        /// (1) Linha de comando: args.Arguments OU GetCommandLineArgs (a WinUI devolve
-        /// Arguments vazio em lançamentos por Process.Start do exe empacotado).
-        /// (2) Duplo-clique no Explorer: a ativação empacotada entrega o arquivo via
-        /// FileActivatedEventArgs (AppLifecycle). Sem comparação de Kind: a projeção
-        /// 19041 não traz ExtendedActivationKind, e o cast do Data já caracteriza a
-        /// ativação por arquivo.
+        /// Caminhos do documento desta ativação (pode ser mais de um: seleção múltipla
+        /// no Explorer chega como vários itens no FileActivatedEventArgs). Fontes:
+        /// (1) linha de comando: args.Arguments OU GetCommandLineArgs (a WinUI devolve
+        /// Arguments vazio em lançamentos por Process.Start do exe empacotado);
+        /// (2) duplo-clique/"Abrir com": FileActivatedEventArgs (AppLifecycle). Sem
+        /// comparação de Kind: a projeção 19041 não traz ExtendedActivationKind, e o
+        /// cast do Data já caracteriza a ativação por arquivo.
         /// </summary>
-        private static string? ExtractActivatedPath(Microsoft.UI.Xaml.LaunchActivatedEventArgs args, string argv)
+        private static List<string> ExtractActivatedPaths(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            if (LaunchArgs.ExtractFilePath(args.Arguments, File.Exists) is string direto)
-            {
-                return direto;
-            }
+            var caminhos = new List<string>();
+            caminhos.AddRange(LaunchArgs.ExtractAllExisting(new[] { args.Arguments }, File.Exists));
+            caminhos.AddRange(LaunchArgs.ExtractAllExisting(Environment.GetCommandLineArgs().Skip(1), File.Exists));
 
-            if (LaunchArgs.ExtractFilePath(argv, File.Exists) is string doArgv)
+            if (Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs()?.Data
+                is Windows.ApplicationModel.Activation.FileActivatedEventArgs fileArgs)
             {
-                return doArgv;
-            }
-
-            return Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs()?.Data
-                is Windows.ApplicationModel.Activation.FileActivatedEventArgs fileArgs
-                && LaunchArgs.ExtractFirstExisting(
+                caminhos.AddRange(LaunchArgs.ExtractAllExisting(
                     fileArgs.Files.Select(f => f is Windows.Storage.StorageFile sf ? sf.Path : null),
-                    File.Exists) is string activatedPath
-                ? activatedPath
-                : null;
-        }
-
-        /// <summary>
-        /// Caminho do documento desta ativação: dois canais de entrega.
-        /// (1) Lançamento explícito: caminho na linha de comando do processo.
-        /// (2) Duplo-clique no Explorer: a ativação empacotada entrega o arquivo
-        /// via FileActivatedEventArgs (AppLifecycle), não via linha de comando.
-        /// Sem comparação de Kind: a projeção 19041 não traz ExtendedActivationKind,
-        /// e o cast do Data já caracteriza a ativação por arquivo.
-        /// </summary>
-        private static string? ExtractActivatedPath(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
-        {
-            if (LaunchArgs.ExtractFilePath(args.Arguments, File.Exists) is string filePath)
-            {
-                return filePath;
+                    File.Exists));
             }
 
-            return Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().GetActivatedEventArgs()?.Data
-                is Windows.ApplicationModel.Activation.FileActivatedEventArgs fileArgs
-                && LaunchArgs.ExtractFirstExisting(
-                    fileArgs.Files.Select(f => f is Windows.Storage.StorageFile sf ? sf.Path : null),
-                    File.Exists) is string activatedPath
-                ? activatedPath
-                : null;
+            return caminhos.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         private void PrincipalInstance_Activated(object? sender, Microsoft.Windows.AppLifecycle.AppActivationArguments args)

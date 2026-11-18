@@ -30,31 +30,43 @@ namespace Slinky
                 candidates.Add(arguments.Trim());
             }
 
-            return ExtractFirstExisting(candidates, fileExists);
+            return ExtractAllExisting(candidates, fileExists).FirstOrDefault();
         }
 
         /// <summary>
         /// Caminhos vindos da ativação por arquivo (duplo-clique/"Abrir com"): o shell
-        /// entrega-os via FileActivatedEventArgs, não na linha de comando. O primeiro
-        /// que existir no disco vence, como no parsing de argumentos.
+        /// entrega-os via FileActivatedEventArgs, não na linha de comando. Devolve TODOS
+        /// os que existirem no disco, na ordem de chegada (seleção múltipla no Explorer).
         /// </summary>
-        public static string? ExtractFirstExisting(IEnumerable<string?> paths, Func<string, bool> fileExists)
+        public static List<string> ExtractAllExisting(IEnumerable<string?> paths, Func<string, bool> fileExists)
         {
             return paths
                 .Where(p => !string.IsNullOrWhiteSpace(p))
                 .Select(p => p!.Trim())
-                .FirstOrDefault(fileExists);
+                .Where(fileExists)
+                .ToList();
         }
 
         /// <summary>
         /// "Nova janela" lança o exe com este flag para que a instância nova NÃO
         /// redirecione para a janela principal (multi-janela é intencional); ativações
         /// do shell sem o flag concentram-se na janela principal em abas.
+        /// Comparação por TOKEN EXATO: um caminho de arquivo que contenha
+        /// "--new-window" no nome não pode disparar o flag.
         /// </summary>
         public static bool HasNewWindowFlag(string? arguments)
         {
-            return arguments is not null
-                && arguments.IndexOf("--new-window", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (string.IsNullOrWhiteSpace(arguments))
+            {
+                return false;
+            }
+
+            return HasNewWindowFlag(arguments.Split(' '));
+        }
+
+        public static bool HasNewWindowFlag(IEnumerable<string?> tokens)
+        {
+            return tokens.Any(t => string.Equals(t, "--new-window", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

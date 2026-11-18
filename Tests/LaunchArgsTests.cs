@@ -35,18 +35,32 @@ namespace Slinky.Tests
         }
 
         [Fact]
-        public void FileActivationFirstExistingPathWins()
+        public void FileActivationPreservesOrderAndReturnsAllExisting()
         {
             var paths = new[] { "C:/x.txt", "C:/b.txt", "C:/a.txt" };
-            Assert.Equal("C:/b.txt", LaunchArgs.ExtractFirstExisting(paths, p => p.Contains('b')));
+            Assert.Equal(new[] { "C:/b.txt", "C:/a.txt" }, LaunchArgs.ExtractAllExisting(paths, p => p.Contains('b') || p.Contains('a')));
         }
 
         [Fact]
-        public void FileActivationIgnoresNullAndBlankEntries()
+        public void FileActivationIgnoresNullAndBlankAndMissing()
         {
-            var paths = new string?[] { null, "   ", "C:/a.txt" };
-            Assert.Equal("C:/a.txt", LaunchArgs.ExtractFirstExisting(paths, _ => true));
-            Assert.Null(LaunchArgs.ExtractFirstExisting(new string?[] { null, "" }, _ => true));
+            var paths = new string?[] { null, "   ", "C:/a.txt", "C:/sumiu.txt" };
+            Assert.Equal(new[] { "C:/a.txt" }, LaunchArgs.ExtractAllExisting(paths, p => p.EndsWith("a.txt")));
+            Assert.Empty(LaunchArgs.ExtractAllExisting(new string?[] { null, "" }, _ => true));
+        }
+
+        [Theory]
+        [InlineData(new string?[] { "--new-window" }, true)]
+        [InlineData(new string?[] { "C:/a.txt", "--new-window" }, true)]
+        [InlineData(new string?[] { "--NEW-WINDOW" }, true)]
+        [InlineData(new string?[] { null, "C:/a.txt" }, false)]
+        [InlineData(new string?[] { "--new window" }, false)]
+        // token exato: um caminho que CONTENHA o texto não pode disparar o flag
+        [InlineData(new string?[] { "C:/pasta com --new-window no nome.txt" }, false)]
+        [InlineData(new string?[] { "C:/a.txt" }, false)]
+        public void HasNewWindowFlag_DetectaTokenExato(string?[] tokens, bool esperado)
+        {
+            Assert.Equal(esperado, LaunchArgs.HasNewWindowFlag(tokens));
         }
 
         [Theory]

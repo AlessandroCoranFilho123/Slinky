@@ -92,6 +92,31 @@ public sealed class TextFileCodecTests
     }
 
     [Fact]
+    public void Decode_EmptyBytesYieldsEmptyUtf8Document()
+    {
+        // arquivo de 0 bytes e legitimo (Notepad abre); abrir nao pode falhar
+        var result = TextFileCodec.Decode(ReadOnlySpan<byte>.Empty);
+
+        Assert.Equal(string.Empty, result.Text);
+        Assert.Equal(TextEncodingKind.Utf8, result.Encoding);
+        Assert.False(result.HasBom);
+        Assert.Equal(LineEndingKind.CrLf, result.LineEnding);
+    }
+
+    [Fact]
+    public void RecoverySnapshotCodec_RoundTripsRealDiskJson()
+    {
+        // payload REAL capturado da pasta Recovery durante o smoke-e2e de 17/11
+        var json = "{\"OwnerProcessId\":2628,\"Text\":\"e2e recovery marcador 30-10\",\"FilePath\":null,\"FileToken\":null,\"SavedAt\":\"2026-11-18T14:21:47.092156-03:00\",\"Encoding\":0,\"HasBom\":false,\"LineEnding\":0}";
+
+        Assert.True(RecoverySnapshotCodec.TryDeserialize(json, out var snapshot));
+        Assert.NotNull(snapshot);
+        Assert.Equal("e2e recovery marcador 30-10", snapshot!.Text);
+        Assert.Equal(2628, snapshot.OwnerProcessId);
+        Assert.Null(snapshot.FilePath);
+    }
+
+    [Fact]
     public void EncodingAndLineEndingLabelsCoverAllKinds()
     {
         Assert.Equal("UTF-8", TextFileCodec.EncodingLabel(TextEncodingKind.Utf8));
