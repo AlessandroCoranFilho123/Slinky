@@ -53,6 +53,8 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 - [ ] Repetir com duas janelas ativas para confirmar que snapshots de um PID não são consumidos nem removidos pelo outro.
 - [x] Com duas janelas abertas, trocar o tema em uma e ativar a outra. A segunda deve adotar o tema trocado ao receber foco (sincronização por re-leitura da configuração compartilhada; `ThemeSync` coberto por testes headless). **PASS 10/11/2026** — automatizado em `Tests/automation/theme-sync.ps1`: B trocou para Escuro Padrão (fundo pixel-exato `1E1E1E`) e A, ao ser ativada, adotou o mesmo fundo pixel-exato.
 
+- [x] **Hover das abas sem flash azul** em claro e escuro (incl. close button e botão "+"). **PASS 18/11/2026** — automatizado em `Tests/automation/tab-hover.ps1` (CopyFromScreen, 8 áreas × 2 temas, 0 pixels azul-accent; fotos em `docs/smoke-fotos/2026-11-18/escuro-*` e `claro-*`). Causa: recursos WinUI de estados não sobrescritos resolviam para accent do sistema — `AplicarRecursosAba` aplica agora todos os recursos do template.
+
 ## 6. Associação de arquivos
 
 - [x] Abrir um `.txt` via Slinky pelo shell. **PASS 10/11/2026** — E2E automatizado: `ShellExecuteEx` com o ProgId do pacote (`AppXhawrr43…`, registrado em `HKCU\SOFTWARE\Classes\.txt\OpenWithProgids`) abriu o arquivo em aba com o título `slinky-fua-teste.txt - Slinky` (rota idêntica a "Abrir com > Slinky"; ver `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`). Nuance: registrar a associação adiciona o Slinky à lista "Abrir com" — torná-lo o aplicativo **padrão** do `.txt` é uma escolha do usuário no Explorer/Configurações (o `UserChoice` é protegido pelo sistema e não pode ser automatizado). O duplo clique físico com o Slinky definido como padrão segue como confirmação visual manual.

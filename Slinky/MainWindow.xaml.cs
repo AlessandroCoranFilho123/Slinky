@@ -150,16 +150,63 @@ namespace Slinky
             // resources into every existing item. TabView caches the visual tree of an
             // existing TabViewItem, so changing only TabView.Resources leaves old tabs
             // stale when both themes share the same Light/Dark ElementTheme.
-            NotesTabView.Resources["TabViewItemHeaderBackground"] = theme.Surface;
-            NotesTabView.Resources["TabViewItemHeaderBackgroundSelected"] = theme.Background;
-            NotesTabView.Resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Background;
-            NotesTabView.Resources["TabViewItemHeaderBackgroundSelectedPointerOver"] = theme.Background;
-            NotesTabView.Resources["TabViewItemHeaderForeground"] = theme.Foreground;
-            NotesTabView.Resources["TabViewItemHeaderForegroundSelected"] = theme.Foreground;
-            NotesTabView.Resources["TabViewItemHeaderForegroundPointerOver"] = theme.Foreground;
-            NotesTabView.Resources["TabViewItemHeaderForegroundSelectedPointerOver"] = theme.Foreground;
+            AplicarRecursosAba(NotesTabView.Resources);
 
             tabThemeStates.Apply(theme.Current);
+        }
+
+        /// <summary>
+        /// Apply EVERY TabViewItem/TabView resource the control template consumes to
+        /// the given dictionary: the WinUI defaults for the states we did not override
+        /// (Pressed, Disabled, close button, the "+" button, presenter hover states)
+        /// resolve to system accent colors — the blue tab-hover flash reported in dark
+        /// mode. Called for the TabView scope and for each tab item.
+        /// </summary>
+        private void AplicarRecursosAba(Microsoft.UI.Xaml.ResourceDictionary resources)
+        {
+            var theme = ThemeService.Instance;
+
+            // header (all common states; the hover/selected pair covers the presenter)
+            resources["TabViewItemHeaderBackground"] = theme.Surface;
+            resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Background;
+            resources["TabViewItemHeaderBackgroundPressed"] = theme.Surface;
+            resources["TabViewItemHeaderBackgroundSelected"] = theme.Background;
+            resources["TabViewItemHeaderBackgroundSelectedPointerOver"] = theme.Background;
+            resources["TabViewItemHeaderBackgroundDisabled"] = theme.Surface;
+            resources["TabViewItemHeaderForeground"] = theme.Foreground;
+            resources["TabViewItemHeaderForegroundPointerOver"] = theme.Foreground;
+            resources["TabViewItemHeaderForegroundPressed"] = theme.Foreground;
+            resources["TabViewItemHeaderForegroundSelected"] = theme.Foreground;
+            resources["TabViewItemHeaderForegroundSelectedPointerOver"] = theme.Foreground;
+            resources["TabViewItemHeaderForegroundDisabled"] = theme.Foreground;
+
+            // close button ("x") of each tab
+            resources["TabViewItemHeaderCloseButtonBackground"] = theme.Surface;
+            resources["TabViewItemHeaderCloseButtonBackgroundPointerOver"] = theme.Background;
+            resources["TabViewItemHeaderCloseButtonBackgroundPressed"] = theme.Surface;
+            resources["TabViewItemHeaderCloseButtonForeground"] = theme.Foreground;
+            resources["TabViewItemHeaderCloseButtonForegroundPointerOver"] = theme.Foreground;
+            resources["TabViewItemHeaderCloseButtonForegroundPressed"] = theme.Foreground;
+
+            // the "+" button of the TabView
+            resources["TabViewButtonBackground"] = theme.Surface;
+            resources["TabViewButtonBackgroundPointerOver"] = theme.Background;
+            resources["TabViewButtonBackgroundPressed"] = theme.Surface;
+            resources["TabViewButtonForeground"] = theme.Foreground;
+            resources["TabViewButtonForegroundPointerOver"] = theme.Foreground;
+            resources["TabViewButtonForegroundPressed"] = theme.Foreground;
+
+            // the internal ListViewItemPresenter also reads ListView* theme resources
+            resources["ListViewItemBackground"] = theme.Surface;
+            resources["ListViewItemBackgroundPointerOver"] = theme.Background;
+            resources["ListViewItemBackgroundPressed"] = theme.Surface;
+            resources["ListViewItemBackgroundSelected"] = theme.Background;
+            resources["ListViewItemBackgroundSelectedPointerOver"] = theme.Background;
+            resources["ListViewItemForeground"] = theme.Foreground;
+            resources["ListViewItemForegroundPointerOver"] = theme.Foreground;
+            resources["ListViewItemForegroundPressed"] = theme.Foreground;
+            resources["ListViewItemForegroundSelected"] = theme.Foreground;
+            resources["ListViewItemForegroundSelectedPointerOver"] = theme.Foreground;
         }
 
         // ----- Startup: crash recovery, session restore, recent files ----------------
@@ -437,15 +484,8 @@ namespace Slinky
 
         private void ApplyTabItemTheme(TabViewItem tabItem)
         {
+            AplicarRecursosAba(tabItem.Resources);
             var theme = ThemeService.Instance;
-            tabItem.Resources["TabViewItemHeaderBackground"] = theme.Surface;
-            tabItem.Resources["TabViewItemHeaderBackgroundSelected"] = theme.Background;
-            tabItem.Resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Background;
-            tabItem.Resources["TabViewItemHeaderBackgroundSelectedPointerOver"] = theme.Background;
-            tabItem.Resources["TabViewItemHeaderForeground"] = theme.Foreground;
-            tabItem.Resources["TabViewItemHeaderForegroundSelected"] = theme.Foreground;
-            tabItem.Resources["TabViewItemHeaderForegroundPointerOver"] = theme.Foreground;
-            tabItem.Resources["TabViewItemHeaderForegroundSelectedPointerOver"] = theme.Foreground;
             tabItem.Background = theme.Surface;
             tabItem.Foreground = theme.Foreground;
             (tabItem.Content as NotePage)?.ApplyTheme();
