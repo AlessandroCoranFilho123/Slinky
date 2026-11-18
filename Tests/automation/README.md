@@ -23,7 +23,7 @@ instalado (`Add-AppxPackage` — ver `docs/INSTALACAO-MSIX.md`), PowerShell 5.1
 | Script | O que valida | Execução |
 |---|---|---|
 | `run-all.ps1` | **Comando único**: testes headless (xUnit) + build Release x64 | `powershell -ExecutionPolicy Bypass -File Tests\automation\run-all.ps1` |
-| `smoke-e2e.ps1` | Recovery E2E: digitar → autosave → crash → Restaurar → conferir conteúdo (2 ciclos) | **manual** — instável em CI (UIA por sleep + cooldown MSIX) |
+| `smoke-e2e.ps1` | Recovery E2E: digitar → autosave → crash → Restaurar → conferir conteúdo (2 ciclos). **Orquestrador + powershell filho** (`e2e-child.ps1`): o client UIA do processo que executa `Stop-Process` fica amarrado à janela morta — leituras pós-kill exigem PS novo; asserts de recovery por DISCO (snapshot contém o texto) | **manual** — estável com filhos, segue manual por exigir pacote instalado |
 | `theme-sync.ps1` | Tema entre duas instâncias: troca em B, ativação de A, fundo pixel-exato contra `ThemePalette`; restaura o tema inicial ao final | **manual** |
 | `accelerators.ps1` | Atalhos globais vivos (Ctrl+T/Ctrl+N/Ctrl+F) e ausência da tooltip de acelerador no hover da barra de título (pixel-diff com captura ao redor da janela) | **manual** |
 | `statusbar.ps1` | Barra de status em 6 cenários (novo doc, digitação, LF, Windows-1252, >2 MB, tema escuro) com assert por UIA e **fotos** em `docs/smoke-fotos/<data>/`; abre arquivos pela rota FUA (ProgId) | **manual** |

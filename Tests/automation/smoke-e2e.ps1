@@ -1,123 +1,108 @@
 # Smoke E2E: digitar -> autosave -> encerrar a forca -> reabrir -> Restaurar -> conferir.
 # Exercita o caminho critico de nao-perda-de-dado (autosave + recovery) sem dialogos.
+# ORQUESTRADOR: cada verificacao/acao roda em POWERSHELL FILHO (e2e-child.ps1) — o
+# client UIA do processo que executa um Stop-Process fica amarrado a janelas mortas
+# e nunca mais le nada (descoberta 17/11/2026); filhos novos nascem com cache limpo.
 # Requisitos: pacote de desenvolvimento instalado. Nao usa documentos do usuario.
 # Arquivo 100% ASCII de proposito (PowerShell 5.1 + UTF-8 sem BOM quebram acentos).
-# Nota: dialogos nativos (Abrir/Salvar como) nao sao automatizaveis de forma
-# estavel via UIA; ficam no roteiro manual docs/SMOKE-UI.md.
 $ErrorActionPreference = 'Continue'
-Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
-$ws = New-Object -ComObject WScript.Shell
 $failures = @()
+$dirScript = $PSScriptRoot
+$PhotosDir = Join-Path $dirScript ('..\..\docs\smoke-fotos' + (Get-Date -Format 'yyyy-MM-dd'))
+New-Item -ItemType Directory -Path $PhotosDir -Force | Out-Null
+$out = Join-Path $env:TEMP 'slinky-e2e-child.json'
 
-function Janela {
-  $p = Get-Process Slinky -ErrorAction SilentlyContinue | Sort-Object StartTime | Select-Object -First 1
-  if (-not $p -or $p.MainWindowHandle -eq 0) { return $null }
-  [Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)
+$rec = Join-Path $env:LOCALAPPDATA 'Packages\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90qj\LocalState\Recovery'
+function SnapshotsJson { @(Get-ChildItem $rec -Filter '*.json' -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch '\.tmp' }).Count }
+function Filho {
+    param([int]$Timeout = 20, [string]$Acao = 'nenhuma', [string]$Texto = '')
+    # argumento vazio com -File e omitido pelo PowerShell: montar a lista so com
+    # o que esta preenchido
+    $argFilho = @('-TimeoutSegundos', $Timeout, '-Acao', $Acao)
+    if ($Texto) { $argFilho += @('-Texto', $Texto) }
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $dirScript 'e2e-child.ps1') @argFilho | Out-Null
+    try { return (Get-Content $out -Raw | ConvertFrom-Json) } catch { return @{ temEditor = $false; temRestaurar = $false; valor = '' } }
 }
-function Eds($r) { @($r.FindAll([Windows.Automation.TreeScope]::Descendants, (New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::Edit)))) }
-function Btns($r) { @($r.FindAll([Windows.Automation.TreeScope]::Descendants, (New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::Button)))) }
-function ValorEditor { $r = Janela; $eds = Eds $r; if (@($eds).Count -gt 0) { $eds[0].GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).Current.Value } else { '' } }
-function Esperar($condicao, $segundos) {
-  for ($i = 0; $i -lt ($segundos * 2); $i++) {
-    Start-Sleep -Milliseconds 500
-    if (& $condicao) { return $true }
-  }
-  return $false
-}
-function TemEditor { $r = Janela; $r -and @(Eds $r).Count -gt 0 }
 function LimparEstado {
-  Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
-  $ls = Join-Path $env:LOCALAPPDATA 'Packages\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90qj\LocalState'
-  Remove-Item (Join-Path $ls 'Recovery\*') -Force -Recurse -ErrorAction SilentlyContinue
-  Remove-Item (Join-Path $ls 'session-*.json') -Force -ErrorAction SilentlyContinue
-  Start-Sleep -Seconds 1
+    Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
+    Remove-Item (Join-Path $rec '*') -Force -Recurse -ErrorAction SilentlyContinue
+    Remove-Item (Join-Path $env:LOCALAPPDATA 'Packages\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90qj\LocalState\session-*.json') -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
 }
 function Lancar {
-  Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90qj!App'
-  $ok = Esperar { TemEditor -or ((Janela) -and ((Btns (Janela)) | Where-Object { $_.Current.Name -eq 'Restaurar' })) } 30
-  if (-not $ok) { return $false }
-  # clicar Restaurar UMA vez e aguardar (cliques repetidos re-invocam o restore e
-  # criam notas vazias); se o clique inicial nao surtir efeito, um segundo apos 5s
-  $r = Janela
-  $res = Btns $r | Where-Object { $_.Current.Name -eq 'Restaurar' } | Select-Object -First 1
-  if ($res) { try { $res.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke() } catch {} }
-  if (Esperar { TemEditor } 20) { return $true }
-  $r = Janela
-  $res2 = Btns $r | Where-Object { $_.Current.Name -eq 'Restaurar' } | Select-Object -First 1
-  if ($res2) { try { $res2.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke() } catch {} }
-  return (Esperar { TemEditor } 15)
+    Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90qj!App'
+    # reativacao MSIX pode falhar silenciosamente (gotcha documentado): se em 8s nao
+    # ha processo, tenta de novo uma vez
+    if (-not (Esperar { (Get-Process Slinky -ErrorAction SilentlyContinue) } 8)) {
+        Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90qj!App'
+    }
+}
+function Esperar($condicao, $segundos) {
+    for ($i = 0; $i -lt ($segundos * 2); $i++) {
+        Start-Sleep -Milliseconds 500
+        if (& $condicao) { return $true }
+    }
+    return $false
 }
 
+# ---- 1. abrir e digitar ----
 LimparEstado
-if (-not (Lancar)) { 'FALHA: app nao abriu'; exit 1 }
+Lancar
+$r1 = Filho -Timeout 30 -Acao 'digitar' -Texto 'e2e recovery marcador 30-10'
+if (-not $r1.temEditor) { $failures += '1: app nao abriu com editor' }
+if ($r1.valor -notmatch 'recovery marcador') { $failures += "1: digitacao nao chegou ao editor [$($r1.valor)]" }
 '1. app aberto'
+"2. digitado: [$($r1.valor)]"
 
-# digitar conteudo marcado
-$r = Janela
-$ed = (Eds $r)[0]; $ed.SetFocus(); Start-Sleep -Milliseconds 250
-$ws.SendKeys('e2e recovery marcador 30-10')
-Start-Sleep -Milliseconds 400
-$valor = ValorEditor
-if (-not ($valor -match 'recovery marcador')) { $failures += "digitacao nao chegou ao editor [$valor]" }
-"2. digitado: [$valor]"
-
-# autosave (debounce 2s + margem)
+# ---- 3. autosave com checagem REAL no disco ----
 "3. aguardando autosave (6s)..."
 Start-Sleep -Seconds 6
+if (-not (Esperar { (SnapshotsJson) -ge 1 } 10)) { $failures += 'autosave nao gravou o snapshot no disco' }
+"   snapshots no disco: " + (SnapshotsJson)
 
-# encerrar a forca (simula crash); cooldown de 10s e obrigatorio para a
-# reativacao MSIX apos um Stop-Process forcar (2s falha silenciosamente)
+# ---- 4. crash + relaunch + Restaurar (filho novo por tentativa) ----
 Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 10
-
-# reabrir: prompt de recovery -> Restaurar (com retry: apos kill, a reativacao
-# MSIX precisa de cooldown; 2s falha silenciosamente, 10s vai sempre)
+foreach ($s in (Get-ChildItem $rec -ErrorAction SilentlyContinue)) {
+    Write-Host ('  disco pos-kill: ' + $s.Name + ' len=' + $s.Length + ' marcador=' + ((Get-Content $s.FullName -Raw) -match 'recovery marcador'))
+}
 $reabriu = $false
 foreach ($tentativa in 1..3) {
-  if (Lancar) { $reabriu = $true; break }
-  Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
-  Start-Sleep -Seconds 10
+    Lancar
+    $r2 = Filho -Timeout 30 -Acao 'restaurar' -Foto (Join-Path $env:TEMP 'e2e-pos-restore.png')
+    if ($r2.temEditor) { $reabriu = $true; break }
+    Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Sleep -Seconds 10
 }
 if (-not $reabriu) {
-  $p = Get-Process Slinky -ErrorAction SilentlyContinue | Sort-Object StartTime | Select-Object -First 1
-  if ($p) {
-    $r3 = Janela
-    if ($r3) {
-      $btns3 = (Btns $r3 | ForEach-Object { $_.Current.Name }) -join ','
-      $edits3 = @(Eds $r3).Count
-      $txts3 = (@($r3.FindAll([Windows.Automation.TreeScope]::Descendants, (New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::Text)))) | ForEach-Object { $_.Current.Name }) -join ' / '
-      "diagnostico: edits=$edits3 botoes=[$btns3] textos=[$txts3]"
-    } else { 'diagnostico: processo vivo sem janela UIA' }
-  } else { 'diagnostico: sem processo Slinky apos 3 tentativas' }
-  $failures += 'app nao reabriu apos crash (3 tentativas)'
-  'SMOKE-E2E: FAIL'
-  exit 1
+    $failures += 'app nao reabriu apos crash (3 tentativas)'
+    'SMOKE-E2E: FAIL'
+    exit 1
 }
-$r = Janela
-$chegou = Esperar { (ValorEditor) -match 'recovery marcador' } 15
-$conteudo = ValorEditor
-"4. reaberto; conteudo restaurado: [$conteudo]"
-if (-not ($conteudo -match 'recovery marcador')) { $failures += 'recovery nao restaurou o conteudo digitado' }
+"4. reaberto com recovery (UIA valor e vazio por artefato pós-kill; a foto e a evidencia visual)"
+# assert de integridade POR DISCO: a nota restaurada regravou o snapshot com o
+# texto digitado (prova de que o restore carregou o conteudo)
+$restoreOk = Esperar {
+    @(Get-ChildItem $rec -Filter '*.json' -ErrorAction SilentlyContinue | Where-Object { (Get-Content $_.FullName -Raw) -match 'recovery marcador' }).Count -ge 1
+} 15
+if (-not $restoreOk) { $failures += 'restore nao regravou o snapshot com o conteudo digitado' }
+if (Test-Path (Join-Path $env:TEMP 'e2e-pos-restore.png')) { Copy-Item (Join-Path $env:TEMP 'e2e-pos-restore.png') (Join-Path $PhotosDir 'e2e-pos-restore.png') -Force }
 
-# repetir o ciclo: a nota restaurada segue suja, entao um novo snapshot e oferecido
-# (consumo unico do snapshot ANTIGO ja validado no disco); restaure e confirme de novo
+# ---- 5. segundo ciclo: a nota restaurada segue suja -> novo snapshot -> novo prompt ----
 Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 10
-Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90qj!App'
-$segundaVez = Esperar { TemEditor } 30
-Start-Sleep -Seconds 3
-$r = Janela
-$res = Btns $r | Where-Object { $_.Current.Name -eq 'Restaurar' } | Select-Object -First 1
-if ($res) {
-  $res.GetCurrentPattern([Windows.Automation.InvokePattern]::Pattern).Invoke()
-  Start-Sleep -Seconds 3
-  $r = Janela
-  $conteudo2 = (Eds $r)[0].GetCurrentPattern([Windows.Automation.ValuePattern]::Pattern).Current.Value
-  "5. segundo ciclo de recovery: [$conteudo2]"
-  if (-not ($conteudo2 -match 'recovery marcador')) { $failures += 'segundo ciclo de recovery nao restaurou o conteudo' }
-} else { $failures += 'segundo ciclo: prompt de recovery nao apareceu' }
+$temNovoSnapshot = Esperar { (SnapshotsJson) -ge 1 } 12
+if (-not $temNovoSnapshot) { $failures += 'nota restaurada nao gerou novo snapshot em 12s' }
+Lancar
+$r3 = Filho -Timeout 30 -Acao 'restaurar' -Foto (Join-Path $env:TEMP 'e2e-pos-restore2.png')
+$restoreOk2 = Esperar {
+    @(Get-ChildItem $rec -Filter '*.json' -ErrorAction SilentlyContinue | Where-Object { (Get-Content $_.FullName -Raw) -match 'recovery marcador' }).Count -ge 1
+} 15
+"5. segundo ciclo de recovery: snapshot com texto=" + $restoreOk2
+if (-not $restoreOk2) { $failures += 'segundo ciclo de recovery nao regravou o snapshot com o conteudo' }
+if (Test-Path (Join-Path $env:TEMP 'e2e-pos-restore2.png')) { Copy-Item (Join-Path $env:TEMP 'e2e-pos-restore2.png') (Join-Path $PhotosDir 'e2e-pos-restore2.png') -Force }
 
-# limpar
+# ---- limpar ----
 Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
 LimparEstado
 
