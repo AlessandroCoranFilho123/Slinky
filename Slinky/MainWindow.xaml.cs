@@ -165,60 +165,149 @@ namespace Slinky
         }
 
         /// <summary>
-        /// Apply EVERY TabViewItem/TabView resource the control template consumes to
-        /// the given dictionary: the WinUI defaults for the states we did not override
-        /// (Pressed, Disabled, close button, the "+" button, presenter hover states)
-        /// resolve to system accent colors — the blue tab-hover flash reported in dark
-        /// mode. Called for the TabView scope and for each tab item.
+        /// Every color resource the TabView/TabViewItem templates consume (WinUI 1.8
+        /// generic.xaml), mapped to the active palette: 0 = Surface, 1 = Background,
+        /// 2 = Foreground, 3 = Accent (the selection indicator). Covering ALL of them
+        /// is required: the WinUI defaults for states we do not override resolve to
+        /// system accent colors (the blue hover/selection flashes reported in dark
+        /// mode), and the "+" button sits in the TabView template OUTSIDE every tab
+        /// item, so it also needs the TabView-scope override.
         /// </summary>
+        private static readonly (string Key, byte Role)[] RecursosDeCorAba = new (string Key, byte Role)[]
+        {
+        ("ListViewItemBackground", 0),
+        ("ListViewItemBackgroundPointerOver", 1),
+        ("ListViewItemBackgroundPressed", 1),
+        ("ListViewItemBackgroundSelected", 1),
+        ("ListViewItemBackgroundSelectedDisabled", 0),
+        ("ListViewItemBackgroundSelectedPointerOver", 1),
+        ("ListViewItemBackgroundSelectedPressed", 1),
+        ("ListViewItemBorderBackground", 0),
+        ("ListViewItemCheckBoxBorderBrush", 0),
+        ("ListViewItemCheckBoxBrush", 0),
+        ("ListViewItemCheckBoxDisabledBorderBrush", 0),
+        ("ListViewItemCheckBoxDisabledBrush", 0),
+        ("ListViewItemCheckBoxPointerOverBorderBrush", 0),
+        ("ListViewItemCheckBoxPointerOverBrush", 0),
+        ("ListViewItemCheckBoxPressedBorderBrush", 0),
+        ("ListViewItemCheckBoxPressedBrush", 0),
+        ("ListViewItemCheckBoxSelectedBrush", 0),
+        ("ListViewItemCheckBoxSelectedDisabledBrush", 0),
+        ("ListViewItemCheckBoxSelectedPointerOverBrush", 0),
+        ("ListViewItemCheckBoxSelectedPressedBrush", 0),
+        ("ListViewItemCheckBrush", 0),
+        ("ListViewItemCheckDisabledBrush", 0),
+        ("ListViewItemCheckPressedBrush", 0),
+        ("ListViewItemDragBackground", 1),
+        ("ListViewItemDragForeground", 2),
+        ("ListViewItemFocusBorderBrush", 0),
+        ("ListViewItemFocusSecondaryBorderBrush", 0),
+        ("ListViewItemFocusVisualPrimaryBrush", 0),
+        ("ListViewItemFocusVisualSecondaryBrush", 0),
+        ("ListViewItemForeground", 2),
+        ("ListViewItemForegroundPointerOver", 1),
+        ("ListViewItemForegroundPressed", 1),
+        ("ListViewItemForegroundSelected", 1),
+        ("ListViewItemForegroundSelectedPointerOver", 1),
+        ("ListViewItemForegroundSelectedPressed", 1),
+        ("ListViewItemMultiArrangeOverlayTextBackground", 0),
+        ("ListViewItemMultiArrangeOverlayTextBorder", 0),
+        ("ListViewItemPlaceholderBackground", 0),
+        ("ListViewItemRevealBackground", 0),
+        ("ListViewItemRevealBackgroundPointerOver", 1),
+        ("ListViewItemRevealBackgroundPressed", 1),
+        ("ListViewItemRevealBackgroundSelected", 1),
+        ("ListViewItemRevealBackgroundSelectedPointerOver", 1),
+        ("ListViewItemRevealBackgroundSelectedPressed", 1),
+        ("ListViewItemRevealBorderBrush", 0),
+        ("ListViewItemRevealBorderBrushPointerOver", 1),
+        ("ListViewItemRevealBorderBrushPressed", 1),
+        ("ListViewItemRevealPlaceholderBackground", 0),
+        ("ListViewItemSelectionIndicatorBrush", 3),
+        ("ListViewItemSelectionIndicatorDisabledBrush", 3),
+        ("ListViewItemSelectionIndicatorPointerOverBrush", 3),
+        ("ListViewItemSelectionIndicatorPressedBrush", 3),
+        ("TabViewBackground", 0),
+        ("TabViewBorderBrush", 0),
+        ("TabViewButtonBackground", 0),
+        ("TabViewButtonBackgroundActiveTab", 0),
+        ("TabViewButtonBackgroundDisabled", 0),
+        ("TabViewButtonBackgroundPointerOver", 1),
+        ("TabViewButtonBackgroundPressed", 1),
+        ("TabViewButtonBorderBrush", 0),
+        ("TabViewButtonBorderBrushDisabled", 0),
+        ("TabViewButtonBorderBrushPointerOver", 1),
+        ("TabViewButtonBorderBrushPressed", 1),
+        ("TabViewButtonForeground", 2),
+        ("TabViewButtonForegroundActiveTab", 2),
+        ("TabViewButtonForegroundDisabled", 0),
+        ("TabViewButtonForegroundPointerOver", 1),
+        ("TabViewButtonForegroundPressed", 1),
+        ("TabViewItemBorderBrush", 0),
+        ("TabViewItemHeaderBackground", 0),
+        ("TabViewItemHeaderBackgroundDisabled", 0),
+        ("TabViewItemHeaderBackgroundPointerOver", 1),
+        ("TabViewItemHeaderBackgroundPressed", 1),
+        ("TabViewItemHeaderBackgroundSelected", 1),
+        ("TabViewItemHeaderCloseButtonBackground", 0),
+        ("TabViewItemHeaderCloseButtonBackgroundPointerOver", 1),
+        ("TabViewItemHeaderCloseButtonBackgroundPressed", 1),
+        ("TabViewItemHeaderCloseButtonBorderBrush", 0),
+        ("TabViewItemHeaderCloseButtonBorderBrushDisabled", 0),
+        ("TabViewItemHeaderCloseButtonBorderBrushPointerOver", 1),
+        ("TabViewItemHeaderCloseButtonBorderBrushPressed", 1),
+        ("TabViewItemHeaderCloseButtonBorderBrushSelected", 1),
+        ("TabViewItemHeaderCloseButtonForeground", 2),
+        ("TabViewItemHeaderCloseButtonForegroundPointerOver", 1),
+        ("TabViewItemHeaderCloseButtonForegroundPressed", 1),
+        ("TabViewItemHeaderDisabledCloseButtonBackground", 0),
+        ("TabViewItemHeaderDisabledCloseButtonForeground", 2),
+        ("TabViewItemHeaderDragBackground", 1),
+        ("TabViewItemHeaderForeground", 2),
+        ("TabViewItemHeaderForegroundDisabled", 0),
+        ("TabViewItemHeaderForegroundPointerOver", 1),
+        ("TabViewItemHeaderForegroundPressed", 1),
+        ("TabViewItemHeaderForegroundSelected", 1),
+        ("TabViewItemHeaderPointerOverCloseButtonBackground", 0),
+        ("TabViewItemHeaderPointerOverCloseButtonForeground", 2),
+        ("TabViewItemHeaderPressedCloseButtonBackground", 0),
+        ("TabViewItemHeaderPressedCloseButtonForeground", 2),
+        ("TabViewItemHeaderSelectedCloseButtonBackground", 0),
+        ("TabViewItemHeaderSelectedCloseButtonForeground", 2),
+        ("TabViewItemIconForeground", 2),
+        ("TabViewItemIconForegroundDisabled", 0),
+        ("TabViewItemIconForegroundPointerOver", 1),
+        ("TabViewItemIconForegroundPressed", 1),
+        ("TabViewItemIconForegroundSelected", 1),
+        ("TabViewItemSeparator", 0),
+        ("TabViewScrollButtonBackground", 0),
+        ("TabViewScrollButtonBackgroundDisabled", 0),
+        ("TabViewScrollButtonBackgroundPointerOver", 1),
+        ("TabViewScrollButtonBackgroundPressed", 1),
+        ("TabViewScrollButtonBorderBrush", 0),
+        ("TabViewScrollButtonBorderBrushDisabled", 0),
+        ("TabViewScrollButtonBorderBrushPointerOver", 1),
+        ("TabViewScrollButtonBorderBrushPressed", 1),
+        ("TabViewScrollButtonForeground", 2),
+        ("TabViewScrollButtonForegroundDisabled", 0),
+        ("TabViewScrollButtonForegroundPointerOver", 1),
+        ("TabViewScrollButtonForegroundPressed", 1),
+        };
+
         private void AplicarRecursosAba(Microsoft.UI.Xaml.ResourceDictionary resources)
         {
             var theme = ThemeService.Instance;
-
-            // header (all common states; the hover/selected pair covers the presenter)
-            resources["TabViewItemHeaderBackground"] = theme.Surface;
-            resources["TabViewItemHeaderBackgroundPointerOver"] = theme.Background;
-            resources["TabViewItemHeaderBackgroundPressed"] = theme.Surface;
-            resources["TabViewItemHeaderBackgroundSelected"] = theme.Background;
-            resources["TabViewItemHeaderBackgroundSelectedPointerOver"] = theme.Background;
-            resources["TabViewItemHeaderBackgroundDisabled"] = theme.Surface;
-            resources["TabViewItemHeaderForeground"] = theme.Foreground;
-            resources["TabViewItemHeaderForegroundPointerOver"] = theme.Foreground;
-            resources["TabViewItemHeaderForegroundPressed"] = theme.Foreground;
-            resources["TabViewItemHeaderForegroundSelected"] = theme.Foreground;
-            resources["TabViewItemHeaderForegroundSelectedPointerOver"] = theme.Foreground;
-            resources["TabViewItemHeaderForegroundDisabled"] = theme.Foreground;
-
-            // close button ("x") of each tab
-            resources["TabViewItemHeaderCloseButtonBackground"] = theme.Surface;
-            resources["TabViewItemHeaderCloseButtonBackgroundPointerOver"] = theme.Background;
-            resources["TabViewItemHeaderCloseButtonBackgroundPressed"] = theme.Surface;
-            resources["TabViewItemHeaderCloseButtonForeground"] = theme.Foreground;
-            resources["TabViewItemHeaderCloseButtonForegroundPointerOver"] = theme.Foreground;
-            resources["TabViewItemHeaderCloseButtonForegroundPressed"] = theme.Foreground;
-
-            // the "+" button of the TabView (hover/pressed = the resting color: no
-            // flash — matches the user expectation of "the normal color" on hover)
-            resources["TabViewButtonBackground"] = theme.Surface;
-            resources["TabViewButtonBackgroundPointerOver"] = theme.Surface;
-            resources["TabViewButtonBackgroundPressed"] = theme.Background;
-            resources["TabViewButtonForeground"] = theme.Foreground;
-            resources["TabViewButtonForegroundPointerOver"] = theme.Foreground;
-            resources["TabViewButtonForegroundPressed"] = theme.Foreground;
-
-            // the internal ListViewItemPresenter also reads ListView* theme resources
-            resources["ListViewItemBackground"] = theme.Surface;
-            resources["ListViewItemBackgroundPointerOver"] = theme.Background;
-            resources["ListViewItemBackgroundPressed"] = theme.Surface;
-            resources["ListViewItemBackgroundSelected"] = theme.Background;
-            resources["ListViewItemBackgroundSelectedPointerOver"] = theme.Background;
-            resources["ListViewItemForeground"] = theme.Foreground;
-            resources["ListViewItemForegroundPointerOver"] = theme.Foreground;
-            resources["ListViewItemForegroundPressed"] = theme.Foreground;
-            resources["ListViewItemForegroundSelected"] = theme.Foreground;
-            resources["ListViewItemForegroundSelectedPointerOver"] = theme.Foreground;
+            foreach (var (key, role) in RecursosDeCorAba)
+            {
+                resources[key] = role switch
+                {
+                    1 => theme.Background,
+                    2 => theme.Foreground,
+                    3 => theme.Accent,
+                    _ => theme.Surface
+                };
+            }
         }
-
         // ----- Startup: crash recovery, session restore, recent files ----------------
 
         private async void RootGrid_Loaded(object sender, RoutedEventArgs e)
