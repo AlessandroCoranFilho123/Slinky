@@ -29,6 +29,10 @@ antes de criar a tag.**
 
 - **Arquivo de 0 bytes abre normalmente** (antes: "Não foi possível abrir o
   arquivo" — `CopyToByteArray` devolve null para arquivo vazio).
+- **Hover das abas sem flash azul** no modo escuro: estados de hover/pressed dos
+  recursos não sobrescritos do TabViewItem resolviam para cores de accent do
+  sistema — agora todos os estados (header, close button, botão "+", presenter)
+  usam a paleta do tema ativo.
 
 ## v1.0.10
 
