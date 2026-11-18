@@ -1,12 +1,13 @@
-# Smoke de NAO-REGRESSAO: cor do hover das abas em claro e escuro.
-# O relato original (17/11): no modo escuro padrao, o hover da aba (principalmente
-# a primeira) ficava AZUL. Causa: os recursos WinUI de estados nao sobrescritos
-# (Pressed, Disabled, close button, botao "+", presenter ListView) resolvem para
-# cores de accent do sistema. Correcao: AplicarRecursosAba aplica TODOS os
-# recursos que o template consome, no escopo do TabView e de cada tabItem.
-# Metodo: cursor real em cada area interativa do strip de abas, captura de TELA
-# (CopyFromScreen — PrintWindow nao captura estados de hover) e contagem de
-# pixels azul-accent. Qualquer pixel azul = falha.
+﻿# Smoke de NAO-REGRESSAO de cores: TODAS as combinacoes tema x estado das abas.
+# Para cada um dos 5 temas: hover com cursor real em cada aba, no "x" de cada aba
+# e no botao "+", captura de TELA (CopyFromScreen) e validacao:
+#   1) a cor da MODA do header sob hover deve ser Background OU Surface do tema
+#      (da paleta do app — ThemePalette);
+#   2) ZERO pixels de azul-accent do SISTEMA (#0078D4 e vizinhos) no strip;
+#   3) ZERO pixels da Surface do tema CLARO (F3F3F3) quando o app esta no escuro.
+# Causa raiz coberta: recursos WinUI de estados nao sobrescritos resolviam para
+# accent do sistema (docs/QA-2026-11-17.md; AplicarRecursosAba aplica os 117
+# recursos do template).
 # Requisitos: pacote de desenvolvimento instalado. Nao usa documentos do usuario.
 # Arquivo 100% ASCII de proposito (PowerShell 5.1 + UTF-8 sem BOM quebram acentos).
 param([string]$PhotosDir)
@@ -17,11 +18,10 @@ Add-Type -AssemblyName System.Drawing
 Add-Type @'
 using System;
 using System.Runtime.InteropServices;
-public class W32H2 {
+public class W32H3 {
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
     [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
     [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
-    [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd, uint msg, IntPtr w, IntPtr l);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
     public struct RECT { public int Left, Top, Right, Bottom; }
 }
@@ -31,41 +31,31 @@ if (-not $PhotosDir) { $PhotosDir = Join-Path $dirScript ('..\..\docs\smoke-foto
 New-Item -ItemType Directory -Path $PhotosDir -Force | Out-Null
 $failures = @()
 
+# paleta esperada por tema (ThemePalette.cs): Background, Surface
+$paletas = @{
+    'LightDefault'   = @{ bg = @(255, 255, 255); surface = @(243, 243, 243) }
+    'LightYellowish' = @{ bg = @(244, 236, 216); surface = @(244, 236, 216) }
+    'DarkDefault'    = @{ bg = @(30, 30, 30);    surface = @(40, 40, 40) }
+    'DarkBluish'     = @{ bg = @(16, 38, 59);    surface = @(16, 38, 59) }
+    'DarkDracula'    = @{ bg = @(40, 42, 54);    surface = @(40, 42, 54) }
+}
+
 function Chord([byte]$vk) {
-    [W32H2]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero)
+    [W32H3]::keybd_event(0x11, 0, 0, [UIntPtr]::Zero)
     Start-Sleep -Milliseconds 60
-    [W32H2]::keybd_event($vk, 0, 0, [UIntPtr]::Zero)
+    [W32H3]::keybd_event($vk, 0, 0, [UIntPtr]::Zero)
     Start-Sleep -Milliseconds 60
-    [W32H2]::keybd_event($vk, 0, 2, [UIntPtr]::Zero)
-    [W32H2]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
+    [W32H3]::keybd_event($vk, 0, 2, [UIntPtr]::Zero)
+    [W32H3]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
 }
-function Foreground { foreach ($p in (Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 })) { [W32H2]::SetForegroundWindow($p.MainWindowHandle) | Out-Null } }
-function ContarAzuis($bmp) {
-    $azuis = 0
-    for ($y = 72; $y -lt 118; $y++) {
-        for ($x = 8; $x -lt 1100; $x++) {
-            $c = $bmp.GetPixel($x, $y)
-            if ($c.B -gt 100 -and $c.B -gt $c.R + 30 -and $c.B -gt $c.G + 10) { $azuis++ }
-        }
+function Foreground { foreach ($p in (Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 })) { [W32H3]::SetForegroundWindow($p.MainWindowHandle) | Out-Null } }
+function Esperar($condicao, $segundos) {
+    for ($i = 0; $i -lt ($segundos * 2); $i++) {
+        Start-Sleep -Milliseconds 500
+        if (& $condicao) { return $true }
     }
-    return $azuis
+    return $false
 }
-function FotoStrip([string]$nome) {
-    $p = Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
-    if (-not $p) { return 0 }
-    $rect = New-Object W32H2+RECT
-    [W32H2]::GetWindowRect($p.MainWindowHandle, [ref]$rect) | Out-Null
-    $bmp = New-Object System.Drawing.Bitmap(($rect.Right - $rect.Left), ($rect.Bottom - $rect.Top))
-    $g = [System.Drawing.Graphics]::FromImage($bmp)
-    $g.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bmp.Size)
-    $g.Dispose()
-    $azuis = ContarAzuis $bmp
-    $bmp.Save((Join-Path $PhotosDir ($nome + '.png')), [System.Drawing.Imaging.ImageFormat]::Png)
-    $bmp.Dispose()
-    Write-Host ('  ' + $nome + ': azuis=' + $azuis)
-    if ($azuis -gt 0) { return $azuis } else { return 0 }
-}
-# troca de tema pelo menu Configurar (radios por AutomationId)
 function SelecionarTema([string]$radioId) {
     $p = Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
     $r = [Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)
@@ -102,17 +92,49 @@ function SelecionarTema([string]$radioId) {
     }
     Start-Sleep -Milliseconds 800
     if ($script:janelaTema -and $script:janelaTema.Current.NativeWindowHandle -ne 0) {
-        [W32H2]::PostMessage([IntPtr]$script:janelaTema.Current.NativeWindowHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
+        [W32H3]::PostMessage([IntPtr]$script:janelaTema.Current.NativeWindowHandle, 0x0010, [IntPtr]::Zero, [IntPtr]::Zero) | Out-Null
         Start-Sleep -Milliseconds 600
     }
     return $ok
 }
-function Esperar($condicao, $segundos) {
-    for ($i = 0; $i -lt ($segundos * 2); $i++) {
-        Start-Sleep -Milliseconds 500
-        if (& $condicao) { return $true }
+# captura de TELA da janela (PrintWindow nao captura estados de hover)
+function Tela($rect) {
+    $bmp = New-Object System.Drawing.Bitmap(($rect.Right - $rect.Left), ($rect.Bottom - $rect.Top))
+    $g = [System.Drawing.Graphics]::FromImage($bmp)
+    $g.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bmp.Size)
+    $g.Dispose()
+    return $bmp
+}
+# moda das cores do rect do header de uma aba (evita o texto, que e minoria)
+function ModaHeader($bmp, [int]$x0, [int]$x1, [int]$y0, [int]$y1) {
+    $cores = @{}
+    for ($y = $y0; $y -lt $y1; $y++) {
+        for ($x = $x0; $x -lt $x1; $x++) {
+            $c = $bmp.GetPixel($x, $y)
+            $chave = '' + $c.R + ',' + $c.G + ',' + $c.B
+            $cores[$chave] = $cores[$chave] + 1
+        }
     }
-    return $false
+    $melhor = $cores.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1
+    return $melhor.Key
+}
+function CorPerto([string]$moda, [int[]]$esperada) {
+    $p = $moda.Split(',')
+    $dr = [Math]::Abs([int]$p[0] - $esperada[0])
+    $dg = [Math]::Abs([int]$p[1] - $esperada[1])
+    $db = [Math]::Abs([int]$p[2] - $esperada[2])
+    return ($dr -le 12 -and $dg -le 12 -and $db -le 12)
+}
+function ContaAzulSistema($bmp) {
+    # azul-accent padrao do sistema (#0078D4 e vizinhos diretos)
+    $n = 0
+    for ($y = 72; $y -lt 118; $y++) {
+        for ($x = 8; $x -lt 1100; $x++) {
+            $c = $bmp.GetPixel($x, $y)
+            if ($c.R -lt 60 -and $c.G -ge 90 -and $c.G -le 160 -and $c.B -ge 180) { $n++ }
+        }
+    }
+    return $n
 }
 
 # ---- limpar, abrir, 3 abas ----
@@ -128,49 +150,78 @@ Start-Sleep -Seconds 1
 Chord 0x54; Start-Sleep -Seconds 1
 Chord 0x54; Start-Sleep -Seconds 1
 $p = Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
-$rect = New-Object W32H2+RECT
-[W32H2]::GetWindowRect($p.MainWindowHandle, [ref]$rect) | Out-Null
-# posicoes: centro do header de cada aba, cada "x", o "+" e a area vazia a direita
-$pontos = @(
-    @{ n = 'aba1-centro'; x = 135 }, @{ n = 'aba1-x'; x = 235 },
-    @{ n = 'aba2-centro'; x = 375 }, @{ n = 'aba2-x'; x = 475 },
-    @{ n = 'aba3-centro'; x = 615 }, @{ n = 'aba3-x'; x = 715 },
-    @{ n = 'botao-plus'; x = 760 }, @{ n = 'area-vazia'; x = 850 }
-)
+$rect = New-Object W32H3+RECT
+[W32H3]::GetWindowRect($p.MainWindowHandle, [ref]$rect) | Out-Null
+# posicoes em coords de JANELA (medidas dos headers reais das abas)
+$abasX = @(135, 375, 615)
+$fecharX = @(235, 475, 715)
+$plusX = 760
 
-# ---- ESCURO PADRAO ----
-Write-Host '== tema escuro padrao =='
-SelecionarTema 'DarkDefaultRadio' | Out-Null
-Start-Sleep -Seconds 1
-$idx = 0
-foreach ($pt in $pontos) {
-    $idx++
-    [W32H2]::SetCursorPos($rect.Left + $pt.x, $rect.Top + 93) | Out-Null
-    [W32H2]::SetCursorPos($rect.Left + $pt.x + 2, $rect.Top + 93) | Out-Null
-    [W32H2]::SetCursorPos($rect.Left + $pt.x, $rect.Top + 93) | Out-Null
+# ---- varredura: 5 temas x estados ----
+foreach ($tema in @($(if ($env:SO_TEMA) { @($env:SO_TEMA) } else { @('LightDefault', 'LightYellowish', 'DarkDefault', 'DarkBluish', 'DarkDracula') }))) {
+    Write-Host ('== tema ' + $tema + ' ==')
+    if (-not (SelecionarTema ($tema + 'Radio'))) { $failures += ($tema + ': radio nao selecionado'); continue }
+    Foreground
+    # assenta 3s: a re-aplicacao de recursos apos troca de tema precisa terminar
+    # antes do polling de UIA/pixels (senao mede transicao entre temas)
+    Start-Sleep -Seconds 3
+    $pal = $paletas[$tema]
+
+    # hover em cada aba (header)
+    for ($i = 0; $i -lt 3; $i++) {
+        [W32H3]::SetCursorPos($rect.Left + $abasX[$i], $rect.Top + 93) | Out-Null
+        [W32H3]::SetCursorPos($rect.Left + $abasX[$i] + 2, $rect.Top + 93) | Out-Null
+        [W32H3]::SetCursorPos($rect.Left + $abasX[$i], $rect.Top + 93) | Out-Null
+        Start-Sleep -Milliseconds 1000
+        $bmp = Tela $rect
+        $moda = ModaHeader $bmp ($abasX[$i] - 60) ($abasX[$i] + 60) 80 112
+        $ok = (CorPerto $moda $pal.bg) -or (CorPerto $moda $pal.surface)
+        $azul = ContaAzulSistema $bmp
+        Write-Host ('  hover aba' + ($i + 1) + ': moda=[' + $moda + '] azulSistema=' + $azul)
+        if (-not $ok) { $failures += ($tema + '/aba' + ($i + 1) + ' hover: cor inesperada [' + $moda + ']') }
+        if ($azul -gt 0) { $failures += ($tema + '/aba' + ($i + 1) + ' hover: ' + $azul + ' px azul-sistema') }
+        $bmp.Save((Join-Path $PhotosDir ($tema + '-hover-aba' + ($i + 1) + '.png')), [System.Drawing.Imaging.ImageFormat]::Png)
+        $bmp.Dispose()
+    }
+
+    # hover no "x" de cada aba (close button)
+    for ($i = 0; $i -lt 3; $i++) {
+        [W32H3]::SetCursorPos($rect.Left + $fecharX[$i], $rect.Top + 93) | Out-Null
+        Start-Sleep -Milliseconds 900
+        $bmp = Tela $rect
+        $moda = ModaHeader $bmp ($fecharX[$i] - 40) ($fecharX[$i] + 40) 80 112
+        $azul = ContaAzulSistema $bmp
+        Write-Host ('  hover x-aba' + ($i + 1) + ': moda=[' + $moda + '] azulSistema=' + $azul)
+        if (-not ((CorPerto $moda $pal.bg) -or (CorPerto $moda $pal.surface))) { $failures += ($tema + '/x-aba' + ($i + 1) + ': cor inesperada [' + $moda + ']') }
+        if ($azul -gt 0) { $failures += ($tema + '/x-aba' + ($i + 1) + ': ' + $azul + ' px azul-sistema') }
+        $bmp.Dispose()
+    }
+
+    # botao "+": normal e hover
+    [W32H3]::SetCursorPos($rect.Left + 850, $rect.Top + 93) | Out-Null   # cursor fora do +
+    Start-Sleep -Milliseconds 800
+    $bmp = Tela $rect
+    $modaNormal = ModaHeader $bmp ($plusX - 30) ($plusX + 30) 80 112
+    $azulNormal = ContaAzulSistema $bmp
+    $bmp.Dispose()
+    [W32H3]::SetCursorPos($rect.Left + $plusX, $rect.Top + 93) | Out-Null
     Start-Sleep -Milliseconds 1000
-    $azuis = FotoStrip ('escuro-' + $pt.n)
-    if ($azuis -gt 0) { $failures += ('escuro/' + $pt.n + ': ' + $azuis + ' pixels azuis no hover') }
+    $bmp = Tela $rect
+    $modaHover = ModaHeader $bmp ($plusX - 30) ($plusX + 30) 80 112
+    $azulHover = ContaAzulSistema $bmp
+    $bmp.Dispose()
+    Write-Host ('  botao +: normal=[' + $modaNormal + '] hover=[' + $modaHover + '] azulSistema=' + $azulHover)
+    foreach ($m in @(@{ t = 'normal'; c = $modaNormal }, @{ t = 'hover'; c = $modaHover })) {
+        if (-not ((CorPerto $m.c $pal.surface) -or (CorPerto $m.c $pal.bg))) {
+            $failures += ($tema + '/+ (' + $m.t + '): cor inesperada [' + $m.c + ']')
+        }
+    }
+    if ($azulNormal -gt 0 -or $azulHover -gt 0) { $failures += ($tema + '/+: px azul-sistema') }
 }
 
-# ---- CLARO PADRAO ----
-Write-Host '== tema claro padrao =='
-SelecionarTema 'LightDefaultRadio' | Out-Null
-Start-Sleep -Seconds 1
-$idx = 0
-foreach ($pt in $pontos) {
-    $idx++
-    [W32H2]::SetCursorPos($rect.Left + $pt.x, $rect.Top + 93) | Out-Null
-    [W32H2]::SetCursorPos($rect.Left + $pt.x + 2, $rect.Top + 93) | Out-Null
-    [W32H2]::SetCursorPos($rect.Left + $pt.x, $rect.Top + 93) | Out-Null
-    Start-Sleep -Milliseconds 1000
-    $azuis = FotoStrip ('claro-' + $pt.n)
-    if ($azuis -gt 0) { $failures += ('claro/' + $pt.n + ': ' + $azuis + ' pixels azuis no hover') }
-}
-
-# ---- voltar ao escuro (tema do usuario) ----
+# voltar ao escuro padrao (tema do usuario) e limpar
 SelecionarTema 'DarkDefaultRadio' | Out-Null
 Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
 '---'
 if ($failures.Count -gt 0) { 'FALHAS:'; $failures | ForEach-Object { ' - ' + $_ }; exit 1 }
-'TAB-HOVER SEM AZUL PASS'
+'CORES: TODAS AS COMBINACOES PASS'
