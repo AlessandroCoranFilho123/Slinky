@@ -1,4 +1,4 @@
-# Auditoria de certificados e instalação — 02/11/2026
+﻿# Auditoria de certificados e instalação — 02/11/2026
 
 > **Decisões do Alessandro executadas em 02/11:** (1) os dois certificados efêmeros
 > `CN=Slinky Release` foram removidos de `LocalMachine\Root` por thumbprint
@@ -29,7 +29,7 @@ enganam:
 
 **Resposta à pergunta central**: o certificado criado por
 `Prepare-DevelopmentCertificate.ps1` **NÃO é** o que assina os pacotes instalados
-por `Install-ReleasePackage.ps1`. O instalador de release consome o `.cer`
+por `scripts/Install-Slinky.ps1`. O instalador de release consome o `.cer`
 publicado pela CI (assinatário `CN=Slinky Release`); o script de preparo atende
 apenas o fluxo local. As assinaturas dos dois fluxos são válidas porque o
 empacotamento MSIX **reescreve o `Publisher` do manifesto para o subject do
@@ -37,7 +37,7 @@ certificado** em tempo de build (observado nos pacotes instalados: publisher
 `CN=Alessandro` no build local e `CN=Slinky Release` no de release, com o
 manifesto do repositório dizendo `CN=Alessandro`).
 
-`Install-ReleasePackage.ps1` **participa da distribuição pública**: é publicado
+`scripts/Install-Slinky.ps1` **participa da distribuição pública**: é publicado
 como asset `Install-Slinky.ps1` em cada release. `Prepare-DevelopmentCertificate.ps1`
 é exclusivamente local (chamado por `instalar-slinky.bat`).
 
@@ -83,7 +83,7 @@ outro passo a partir do mesmo certificado exportado.
 PFX no script). O diretório de destino é criado se faltar; o arquivo de saída é
 sobrescrito sem prompt (comportamento aceitável para um nome com GUID/temp).
 
-## 3. Install-ReleasePackage.ps1
+## 3. scripts/Install-Slinky.ps1
 
 ### A. Elevação — necessária, agora com resultado propagado
 - A importação em `LocalMachine\*` exige admin; a remoção de pacote do usuário
@@ -162,20 +162,20 @@ sobrescrito sem prompt (comportamento aceitável para um nome com GUID/temp).
 
 | Problema | Arquivo | Risco | Classificação | Solução |
 |---|---|---|---|---|
-| P1: remoção por `DisplayName` pode pegar app de terceiro | Install-ReleasePackage.ps1 | médio | confirmado → corrigido | remover só pela identidade `Name` |
-| P2: exit code elevado descartado; UAC cancelado sem tratamento | Install-ReleasePackage.ps1 | médio | confirmado → corrigido | `-PassThru` + `exit` + catch de cancelamento |
-| P3: `.cer` confiado sem validar ser o signatário do pacote | Install-ReleasePackage.ps1 | alto | confirmado → corrigido | `Get-AuthenticodeSignature` + comparação de thumbprint antes de importar |
+| P1: remoção por `DisplayName` pode pegar app de terceiro | scripts/Install-Slinky.ps1 | médio | confirmado → corrigido | remover só pela identidade `Name` |
+| P2: exit code elevado descartado; UAC cancelado sem tratamento | scripts/Install-Slinky.ps1 | médio | confirmado → corrigido | `-PassThru` + `exit` + catch de cancelamento |
+| P3: `.cer` confiado sem validar ser o signatário do pacote | scripts/Install-Slinky.ps1 | alto | confirmado → corrigido | `Get-AuthenticodeSignature` + comparação de thumbprint antes de importar |
 | P4: asset/cert de release com nome de desenvolvimento | release.yml | médio (confusão de confiança) | confirmado → corrigido | renomeado para `Slinky-Release.cer` |
 | P5: chave privada dev Exportável sem necessidade | Prepare-DevelopmentCertificate.ps1 | médio-baixo | confirmado → corrigido (novos certificados) | `KeyExportPolicy NonExportable` |
 | P6: 5 jobs da CI sem `permissions` (CodeQL ×5) | tests.yml | médio (supply chain) | confirmado → corrigido | `permissions: contents: read` no workflow |
 | P7: `artifacts/release-1.0.0/` versionado no repo público | repo | baixo (higiene) | confirmado → corrigido | `git rm --cached` + `.gitignore` |
-| P8: import em `LocalMachine\Root` desnecessário | Install-ReleasePackage.ps1, instalar-slinky.bat | alto (acúmulo de âncoras de confiança) | confirmado → corrigido no instalador de release | somente `TrustedPeople`; experimento E1 anexado |
+| P8: import em `LocalMachine\Root` desnecessário | scripts/Install-Slinky.ps1, instalar-slinky.bat | alto (acúmulo de âncoras de confiança) | confirmado → corrigido no instalador de release | somente `TrustedPeople`; experimento E1 anexado |
 | P9: stray `scripts/Slinky-Development.cer` (dev) colidia com o nome esperado pelo instalador de release | disco local | baixo | confirmado → corrigido | arquivo público removido do disco |
 | — Subject pessoal `CN=Alessandro` | Prepare | nenhum (público no manifesto) | configuração necessária | mantido (mudança criaria 3ª família sem ganho) |
 | — `Export-Certificate` emite só o público | Prepare | nenhum | configuração necessária | mantido |
-| — Elevação admin | Install-ReleasePackage.ps1 | nenhum (import em LocalMachine exige) | configuração necessária | mantida |
-| — Remoção prévia por identidade | Install-ReleasePackage.ps1 | nenhum (0x80073CFB provado) | configuração necessária | mantida |
-| — `ForceApplicationShutdown`/`ForceUpdateFromAnyVersion` | Install-ReleasePackage.ps1 | nenhum | configuração necessária | mantidos |
+| — Elevação admin | scripts/Install-Slinky.ps1 | nenhum (import em LocalMachine exige) | configuração necessária | mantida |
+| — Remoção prévia por identidade | scripts/Install-Slinky.ps1 | nenhum (0x80073CFB provado) | configuração necessária | mantida |
+| — `ForceApplicationShutdown`/`ForceUpdateFromAnyVersion` | scripts/Install-Slinky.ps1 | nenhum | configuração necessária | mantidos |
 
 ## 7. Validação executada
 

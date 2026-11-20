@@ -1,4 +1,4 @@
-# Roteiro de smoke test da interface
+﻿# Roteiro de smoke test da interface
 
 Este roteiro valida comportamentos que os testes headless não conseguem observar. Execute-o em uma instalação MSIX funcional do Slinky e registre a data, a versão do Windows, a arquitetura e o resultado de cada cenário. Não marque um cenário como aprovado apenas porque o teste unitário correspondente passou.
 
@@ -58,8 +58,6 @@ Este roteiro valida comportamentos que os testes headless não conseguem observa
 ## 6. Associação de arquivos
 
 - [x] Abrir um `.txt` via Slinky pelo shell. **PASS 10/11/2026** — E2E automatizado: `ShellExecuteEx` com o ProgId do pacote (`AppXhawrr43…`, registrado em `HKCU\SOFTWARE\Classes\.txt\OpenWithProgids`) abriu o arquivo em aba com o título `slinky-fua-teste.txt - Slinky` (rota idêntica a "Abrir com > Slinky"; ver `docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`). Nuance: registrar a associação adiciona o Slinky à lista "Abrir com" — torná-lo o aplicativo **padrão** do `.txt` é uma escolha do usuário no Explorer/Configurações (o `UserChoice` é protegido pelo sistema e não pode ser automatizado). O duplo clique físico com o Slinky definido como padrão segue como confirmação visual manual.
-
-## 7. Tema e impressão
 
 ## 6. Tema e impressão
 

@@ -1,4 +1,4 @@
-# Release notes — Slinky
+﻿# Release notes — Slinky
 
 Este arquivo é a fonte única das notas de release. O workflow `release.yml` o usa
 como `body_path` (com `generate_release_notes: false` — a action v2 substituía o
@@ -173,4 +173,4 @@ antes de criar a tag.**
 
 ## v1.0.0
 
-- Primeira release pública: editor WinUI 3 com abas, cinco temas WCAG AA,
+- Primeira release pública: editor WinUI 3 com abas, cinco temas com contraste WCAG AA verificado, busca e substituição, impressão e recuperação de conteúdo não salvo.

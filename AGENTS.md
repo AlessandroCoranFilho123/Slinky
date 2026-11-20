@@ -1,4 +1,4 @@
-# AGENTS.md — Guia de trabalho para agentes de IA
+﻿# AGENTS.md — Guia de trabalho para agentes de IA
 
 Este arquivo é o ponto de entrada para qualquer agente (Codex, Claude, Kimi, GLM/ZCode)
 trabalhando neste repositório. Ele resume o essencial e aponta para a documentação
@@ -73,7 +73,7 @@ Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90
 Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 `PRI249 DESKTOP-EVENTLOG-INSTRUMENTATION`.
 
-## Estado atual (10/11/2026)
+## Estado atual (19/11/2026)
 
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
@@ -118,8 +118,8 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 - **Tema sincroniza entre instâncias** (10/11): `LocalSettings` é compartilhado por
   pacote; cada janela re-lê no `Activated` (`ThemeSync.Resolve`, puro e testado).
 - **Release notes**: fonte única em [`RELEASE-NOTES.md`](RELEASE-NOTES.md) — atualize a
-  seção da nova release ANTES de criar a tag (`release.yml` usa `body_path` + changelog
-  automático). Para editar o corpo de uma release já publicada é preciso token com
+  seção da nova release ANTES de criar a tag (`release.yml` monta o `body` via
+  `GITHUB_OUTPUT` — o `body_path` da action v3 é ignorado). Para editar o corpo de uma release já publicada é preciso token com
   escopo `repo` (a credencial do git local não tem — tentativa de 29/10 falhou com 404).
 - Decisões de comportamento fechadas no §15 da auditoria (undo/`IsDirty`, arquivo
   alterado externamente, Windows-1252, janelas/processos) e **recuperação
@@ -164,3 +164,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 | [`docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`](docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md) | Associação `.txt`: causa raiz do C00CE014, rota de ativação por arquivo e evidência E2E |
 | [`docs/JANELA-UNICA-ABAS-2026-11-17.md`](docs/JANELA-UNICA-ABAS-2026-11-17.md) | Single-instancing com abas: design, armadilhas (argv vazio, chave órfã) e evidência E2E |
 | [`docs/QA-2026-11-17.md`](docs/QA-2026-11-17.md) | Auditoria da single-instancing: 7 achados corrigidos + bateria completa (byte a byte) |
+| [`docs/RACE-AUDIT-2026-10-30.md`](docs/RACE-AUDIT-2026-10-30.md) | Auditoria de corridas: R1/R2 (snapshot ressuscitado), R5 (tmp órfão) |
+| [`docs/REVISAO-AUDITORIA-CLAUDE-2026-10-30.md`](docs/REVISAO-AUDITORIA-CLAUDE-2026-10-30.md) | Revisão cruzada de auditoria externa: achados M/H corrigidos |
+| [`docs/AUDITORIA-CERTIFICADOS-2026-11-02.md`](docs/AUDITORIA-CERTIFICADOS-2026-11-02.md) | Certificados: decisões, stores, rejeição de major bump isolado |
+| [`docs/ATALHOS-TOOLTIP-2026-11-11.md`](docs/ATALHOS-TOOLTIP-2026-11-11.md) | Tooltip "Ctrl+N" flutuante: causa raiz e correção |

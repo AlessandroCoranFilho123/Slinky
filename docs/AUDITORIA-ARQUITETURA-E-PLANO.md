@@ -1,4 +1,4 @@
-# Auditoria de arquitetura, implementação e plano do Slinky
+﻿# Auditoria de arquitetura, implementação e plano do Slinky
 
 ## 1. Escopo
 
@@ -275,7 +275,7 @@ Essa decisão continua pendente.
 
 ## 12. Testes atuais
 
-A suíte `Slinky.Tests` possui 72 testes no estado atual do código-base. A suíte cobre:
+A suíte `Slinky.Tests` possui 119 testes no estado atual do código-base (incluindo os testes de codificação, single-instancing e filas adicionados em 17–19/11). A suíte cobre:
 
 - busca e substituição;
 - contraste e temas;
@@ -329,9 +329,13 @@ O workflow `.github/workflows/tests.yml` agora contém:
 
 ### Instalação
 
-- execução do `instalar-slinky.bat --x64`;
-- verificação via `Get-AppxPackage`;
-- remoção do pacote ao final do smoke test.
+- restore dos dois projetos de teste;
+- teste headless;
+- builds x86/x64/ARM64 com `WindowsAppSDKSelfContained=true`;
+- geração de MSIX x64 assinado (cert efêmero);
+- smoke de instalação via `Add-AppxPackage`;
+- build com trimming como diagnóstico;
+- CodeQL em job separado.
 
 ### Trimming
 
@@ -357,7 +361,7 @@ Esses pontos exigem WinAppDriver, Playwright Windows App SDK, MSTest UI ou outra
 
 O projeto usa:
 
-- .NET 8;
+- .NET 10;
 - WinUI 3;
 - Windows App SDK 1.8;
 - MSIX single-project;
