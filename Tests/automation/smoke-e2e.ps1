@@ -8,7 +8,7 @@
 $ErrorActionPreference = 'Continue'
 $failures = @()
 $dirScript = $PSScriptRoot
-$PhotosDir = Join-Path $dirScript ('..\..\docs\smoke-fotos' + (Get-Date -Format 'yyyy-MM-dd'))
+$PhotosDir = Join-Path $dirScript ('..\..\docs\smoke-fotos\' + (Get-Date -Format 'yyyy-MM-dd'))
 New-Item -ItemType Directory -Path $PhotosDir -Force | Out-Null
 $out = Join-Path $env:TEMP 'slinky-e2e-child.json'
 

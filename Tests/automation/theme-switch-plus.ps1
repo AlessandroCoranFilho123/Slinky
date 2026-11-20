@@ -1,4 +1,4 @@
-# Smoke de NAO-REGRESSAO: a sequencia exata do relato do usuario (18/11).
+﻿# Smoke de NAO-REGRESSAO: a sequencia exata do relato do usuario (18/11).
 # Relato: abrir o Slinky (no claro padrao) com arquivo -> trocar para Azulado ->
 # trocar para Escuro padrao -> criar aba "Sem titulo" DEPOIS -> o hover na aba e
 # no botao "+" ficava com cores erradas (+ branco com hover preto; hover azul).
@@ -84,6 +84,39 @@ function SelecionarTema([string]$radioId) {
     }
     return $ok
 }
+function CorTextoAba {
+    $p = Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+    $rect = New-Object W32V2+RECT
+    [W32V2]::GetWindowRect($p.MainWindowHandle, [ref]$rect) | Out-Null
+    $bmp = New-Object System.Drawing.Bitmap(($rect.Right - $rect.Left), ($rect.Bottom - $rect.Top))
+    $g = [System.Drawing.Graphics]::FromImage($bmp)
+    $g.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bmp.Size)
+    $g.Dispose()
+    $cores = @{}
+    for ($y = 82; $y -lt 105; $y++) {
+        for ($x = 28; $x -lt 105; $x++) {
+            $c = $bmp.GetPixel($x, $y)
+            # descarta o fundo (Surface da paleta corrente, +-14) e vizinhos diretos
+            $eFundo = ([Math]::Abs($c.R - $script:surfaceR) -le 14 -and [Math]::Abs($c.G - $script:surfaceG) -le 14 -and [Math]::Abs($c.B - $script:surfaceB) -le 14)
+            if (-not $eFundo) { $cores[$c] = $cores[$c] + 1 }
+        }
+    }
+    $bmp.Dispose()
+    if ($cores.Count -eq 0) { return @{ r = -1; g = -1; b = -1 } }
+    $melhor = $cores.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1
+    return @{ r = $melhor.Key.R; g = $melhor.Key.G; b = $melhor.Key.B }
+}
+function ForegroundEsperada([string]$tema) {
+    # ThemePalette.Foreground por tema
+    switch ($tema) {
+        'LightDefault'   { return @(26, 26, 26) }
+        'LightYellowish' { return @(75, 54, 33) }
+        'DarkDefault'    { return @(212, 212, 212) }
+        'DarkBluish'     { return @(220, 232, 241) }
+        'DarkDracula'    { return @(248, 248, 242) }
+    }
+    return @(0, 0, 0)
+}
 function FotoEAvalia([string]$nome, [int]$hoverX) {
     $p = Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
     $rect = New-Object W32V2+RECT
@@ -120,11 +153,14 @@ Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90
 Start-Sleep -Seconds 8
 Foreground
 Start-Sleep -Seconds 1
+$script:surfaceR = 243; $script:surfaceG = 243; $script:surfaceB = 243
 Write-Host '1. app aberto (claro padrao inicial)'
 if (-not (SelecionarTema 'DarkBluishRadio')) { $failures += 'nao foi para Azulado' }
+$script:surfaceR = 22; $script:surfaceG = 48; $script:surfaceB = 72
 Write-Host '2. tema: azulado'
 if (-not (SelecionarTema 'DarkDefaultRadio')) { $failures += 'nao foi para Escuro padrao' }
 Write-Host '3. tema: escuro padrao'
+$script:surfaceR = 40; $script:surfaceG = 40; $script:surfaceB = 40
 Chord 0x54; Start-Sleep -Seconds 1
 Foreground
 Start-Sleep -Seconds 1

@@ -41,6 +41,3 @@ nativos não expõem campos via UIA e a ordem da árvore varia. O fluxo de recov
 em si está validado por diagnósticos controlados e pelos testes de integração
 (`Slinky.IntegrationTests`), que executam os mesmos serviços de forma
 determinística contra pasta real isolada.
-| `run-all.ps1` | Comando único: testes headless + smoke E2E |
-
-Uso: `powershell -ExecutionPolicy Bypass -File Tests\automation\run-all.ps1`

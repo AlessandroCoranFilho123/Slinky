@@ -1,4 +1,4 @@
-﻿# Comando unico de validacao: testes headless + E2E de fumaca.
+﻿# Comando unico de validacao: testes headless + build Release x64.
 # Uso: powershell -ExecutionPolicy Bypass -File Tests\automation\run-all.ps1
 $ErrorActionPreference = 'Continue'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
