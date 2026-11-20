@@ -212,6 +212,13 @@ namespace Slinky
                     return;
                 }
 
+                if (mainWindow.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter
+                    && presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized)
+                {
+                    presenter.Restore();
+                }
+                mainWindow.Activate();
+
                 foreach (var caminho in Slinky.Services.ExternalOpenQueue.Drain())
                 {
                     mainWindow.EnqueueOpenPath(caminho);
@@ -266,7 +273,7 @@ namespace Slinky
                     CloseButtonText = "OK",
                     RequestedTheme = ThemeService.Instance.ElementTheme
                 };
-                    await dialog.ShowAsync();
+                    await DialogCoordinator.ShowAsync(dialog, ThemeService.Instance.ElementTheme);
                 }
                 catch
                 {

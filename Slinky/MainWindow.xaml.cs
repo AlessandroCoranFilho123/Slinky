@@ -1,4 +1,4 @@
-using Microsoft.UI.Xaml;
+﻿using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -34,10 +34,6 @@ namespace Slinky
         private PrintSettings currentPrintSettings = new();
         private bool closeConfirmed;
         private bool closePromptOpen;
-        // Only one ContentDialog may be open at a time (XAML rule); every ShowAsync
-        // site below sets this so shortcuts and menu handlers can wait instead of
-        // throwing COMException 0x80000019.
-        private bool contentDialogOpen;
         private bool startupRestorationInProgress = true;
 
         private sealed class PrintSettings
@@ -188,16 +184,16 @@ namespace Slinky
         ("ListViewItemCheckBoxDisabledBorderBrush", 0),
         ("ListViewItemCheckBoxDisabledBrush", 0),
         ("ListViewItemCheckBoxPointerOverBorderBrush", 0),
-        ("ListViewItemCheckBoxPointerOverBrush", 0),
+        ("ListViewItemCheckBoxPointerOverBrush", 1),
         ("ListViewItemCheckBoxPressedBorderBrush", 0),
-        ("ListViewItemCheckBoxPressedBrush", 0),
-        ("ListViewItemCheckBoxSelectedBrush", 0),
-        ("ListViewItemCheckBoxSelectedDisabledBrush", 0),
-        ("ListViewItemCheckBoxSelectedPointerOverBrush", 0),
-        ("ListViewItemCheckBoxSelectedPressedBrush", 0),
+        ("ListViewItemCheckBoxPressedBrush", 1),
+        ("ListViewItemCheckBoxSelectedBrush", 1),
+        ("ListViewItemCheckBoxSelectedDisabledBrush", 1),
+        ("ListViewItemCheckBoxSelectedPointerOverBrush", 1),
+        ("ListViewItemCheckBoxSelectedPressedBrush", 1),
         ("ListViewItemCheckBrush", 0),
         ("ListViewItemCheckDisabledBrush", 0),
-        ("ListViewItemCheckPressedBrush", 0),
+        ("ListViewItemCheckPressedBrush", 1),
         ("ListViewItemDragBackground", 1),
         ("ListViewItemDragForeground", 2),
         ("ListViewItemFocusBorderBrush", 0),
@@ -205,11 +201,11 @@ namespace Slinky
         ("ListViewItemFocusVisualPrimaryBrush", 0),
         ("ListViewItemFocusVisualSecondaryBrush", 0),
         ("ListViewItemForeground", 2),
-        ("ListViewItemForegroundPointerOver", 1),
-        ("ListViewItemForegroundPressed", 1),
-        ("ListViewItemForegroundSelected", 1),
-        ("ListViewItemForegroundSelectedPointerOver", 1),
-        ("ListViewItemForegroundSelectedPressed", 1),
+        ("ListViewItemForegroundPointerOver", 2),
+        ("ListViewItemForegroundPressed", 2),
+        ("ListViewItemForegroundSelected", 2),
+        ("ListViewItemForegroundSelectedPointerOver", 2),
+        ("ListViewItemForegroundSelectedPressed", 2),
         ("ListViewItemMultiArrangeOverlayTextBackground", 0),
         ("ListViewItemMultiArrangeOverlayTextBorder", 0),
         ("ListViewItemPlaceholderBackground", 0),
@@ -220,8 +216,8 @@ namespace Slinky
         ("ListViewItemRevealBackgroundSelectedPointerOver", 1),
         ("ListViewItemRevealBackgroundSelectedPressed", 1),
         ("ListViewItemRevealBorderBrush", 0),
-        ("ListViewItemRevealBorderBrushPointerOver", 1),
-        ("ListViewItemRevealBorderBrushPressed", 1),
+        ("ListViewItemRevealBorderBrushPointerOver", 0),
+        ("ListViewItemRevealBorderBrushPressed", 0),
         ("ListViewItemRevealPlaceholderBackground", 0),
         ("ListViewItemSelectionIndicatorBrush", 3),
         ("ListViewItemSelectionIndicatorDisabledBrush", 3),
@@ -236,13 +232,13 @@ namespace Slinky
         ("TabViewButtonBackgroundPressed", 1),
         ("TabViewButtonBorderBrush", 0),
         ("TabViewButtonBorderBrushDisabled", 0),
-        ("TabViewButtonBorderBrushPointerOver", 1),
-        ("TabViewButtonBorderBrushPressed", 1),
+        ("TabViewButtonBorderBrushPointerOver", 0),
+        ("TabViewButtonBorderBrushPressed", 0),
         ("TabViewButtonForeground", 2),
         ("TabViewButtonForegroundActiveTab", 2),
-        ("TabViewButtonForegroundDisabled", 0),
-        ("TabViewButtonForegroundPointerOver", 1),
-        ("TabViewButtonForegroundPressed", 1),
+        ("TabViewButtonForegroundDisabled", 2),
+        ("TabViewButtonForegroundPointerOver", 2),
+        ("TabViewButtonForegroundPressed", 2),
         ("TabViewItemBorderBrush", 0),
         ("TabViewItemHeaderBackground", 0),
         ("TabViewItemHeaderBackgroundDisabled", 0),
@@ -254,31 +250,31 @@ namespace Slinky
         ("TabViewItemHeaderCloseButtonBackgroundPressed", 1),
         ("TabViewItemHeaderCloseButtonBorderBrush", 0),
         ("TabViewItemHeaderCloseButtonBorderBrushDisabled", 0),
-        ("TabViewItemHeaderCloseButtonBorderBrushPointerOver", 1),
-        ("TabViewItemHeaderCloseButtonBorderBrushPressed", 1),
-        ("TabViewItemHeaderCloseButtonBorderBrushSelected", 1),
+        ("TabViewItemHeaderCloseButtonBorderBrushPointerOver", 0),
+        ("TabViewItemHeaderCloseButtonBorderBrushPressed", 0),
+        ("TabViewItemHeaderCloseButtonBorderBrushSelected", 0),
         ("TabViewItemHeaderCloseButtonForeground", 2),
-        ("TabViewItemHeaderCloseButtonForegroundPointerOver", 1),
-        ("TabViewItemHeaderCloseButtonForegroundPressed", 1),
+        ("TabViewItemHeaderCloseButtonForegroundPointerOver", 2),
+        ("TabViewItemHeaderCloseButtonForegroundPressed", 2),
         ("TabViewItemHeaderDisabledCloseButtonBackground", 0),
         ("TabViewItemHeaderDisabledCloseButtonForeground", 2),
         ("TabViewItemHeaderDragBackground", 1),
         ("TabViewItemHeaderForeground", 2),
-        ("TabViewItemHeaderForegroundDisabled", 0),
-        ("TabViewItemHeaderForegroundPointerOver", 1),
-        ("TabViewItemHeaderForegroundPressed", 1),
-        ("TabViewItemHeaderForegroundSelected", 1),
-        ("TabViewItemHeaderPointerOverCloseButtonBackground", 0),
+        ("TabViewItemHeaderForegroundDisabled", 2),
+        ("TabViewItemHeaderForegroundPointerOver", 2),
+        ("TabViewItemHeaderForegroundPressed", 2),
+        ("TabViewItemHeaderForegroundSelected", 2),
+        ("TabViewItemHeaderPointerOverCloseButtonBackground", 1),
         ("TabViewItemHeaderPointerOverCloseButtonForeground", 2),
-        ("TabViewItemHeaderPressedCloseButtonBackground", 0),
+        ("TabViewItemHeaderPressedCloseButtonBackground", 1),
         ("TabViewItemHeaderPressedCloseButtonForeground", 2),
-        ("TabViewItemHeaderSelectedCloseButtonBackground", 0),
+        ("TabViewItemHeaderSelectedCloseButtonBackground", 1),
         ("TabViewItemHeaderSelectedCloseButtonForeground", 2),
         ("TabViewItemIconForeground", 2),
-        ("TabViewItemIconForegroundDisabled", 0),
-        ("TabViewItemIconForegroundPointerOver", 1),
-        ("TabViewItemIconForegroundPressed", 1),
-        ("TabViewItemIconForegroundSelected", 1),
+        ("TabViewItemIconForegroundDisabled", 2),
+        ("TabViewItemIconForegroundPointerOver", 2),
+        ("TabViewItemIconForegroundPressed", 2),
+        ("TabViewItemIconForegroundSelected", 2),
         ("TabViewItemSeparator", 0),
         ("TabViewScrollButtonBackground", 0),
         ("TabViewScrollButtonBackgroundDisabled", 0),
@@ -286,12 +282,12 @@ namespace Slinky
         ("TabViewScrollButtonBackgroundPressed", 1),
         ("TabViewScrollButtonBorderBrush", 0),
         ("TabViewScrollButtonBorderBrushDisabled", 0),
-        ("TabViewScrollButtonBorderBrushPointerOver", 1),
-        ("TabViewScrollButtonBorderBrushPressed", 1),
+        ("TabViewScrollButtonBorderBrushPointerOver", 0),
+        ("TabViewScrollButtonBorderBrushPressed", 0),
         ("TabViewScrollButtonForeground", 2),
-        ("TabViewScrollButtonForegroundDisabled", 0),
-        ("TabViewScrollButtonForegroundPointerOver", 1),
-        ("TabViewScrollButtonForegroundPressed", 1),
+        ("TabViewScrollButtonForegroundDisabled", 2),
+        ("TabViewScrollButtonForegroundPointerOver", 2),
+        ("TabViewScrollButtonForegroundPressed", 2),
         };
 
         private void AplicarRecursosAba(Microsoft.UI.Xaml.ResourceDictionary resources)
@@ -418,7 +414,7 @@ namespace Slinky
                 RequestedTheme = ThemeService.Instance.ElementTheme
             };
 
-            var result = await dialog.ShowAsync();
+            var result = await DialogCoordinator.ShowAsync(dialog, ThemeService.Instance.ElementTheme);
 
             // F-04: só Restaurar e Descartar consomem os snapshots. Esc/cancel
             // ("Decidir depois") preserva tudo no disco para a próxima abertura.
@@ -725,7 +721,7 @@ namespace Slinky
                 return true;
             }
 
-            if (contentDialogOpen)
+            if (DialogCoordinator.IsOpen)
             {
                 return false;
             }
@@ -742,18 +738,9 @@ namespace Slinky
                 RequestedTheme = ThemeService.Instance.ElementTheme
             };
 
-            contentDialogOpen = true;
-            ContentDialogResult result;
-            try
-            {
-                result = await dialog.ShowAsync();
-            }
-            finally
-            {
-                contentDialogOpen = false;
-            }
+            var result = await DialogCoordinator.ShowAsync(dialog, ThemeService.Instance.ElementTheme);
 
-            if (result == ContentDialogResult.None)
+            if (result is null or ContentDialogResult.None)
             {
                 return false;
             }
@@ -991,7 +978,7 @@ namespace Slinky
         private void SalvarAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
         {
             args.Handled = true;
-            if (closePromptOpen || contentDialogOpen)
+            if (closePromptOpen || DialogCoordinator.IsOpen)
             {
                 return;
             }
@@ -1001,7 +988,7 @@ namespace Slinky
         private void SalvarComoAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
         {
             args.Handled = true;
-            if (closePromptOpen || contentDialogOpen)
+            if (closePromptOpen || DialogCoordinator.IsOpen)
             {
                 return;
             }
@@ -1011,7 +998,7 @@ namespace Slinky
         private async void FecharAbaAccelerator_Invoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
         {
             args.Handled = true;
-            if (closePromptOpen || contentDialogOpen || NotesTabView.SelectedItem is not TabViewItem { Tag: Note note })
+            if (closePromptOpen || DialogCoordinator.IsOpen || NotesTabView.SelectedItem is not TabViewItem { Tag: Note note })
             {
                 return;
             }
@@ -1153,10 +1140,11 @@ namespace Slinky
                 Content = content,
                 PrimaryButtonText = "Imprimir",
                 CloseButtonText = "Cancelar",
-                DefaultButton = ContentDialogButton.Primary
+                DefaultButton = ContentDialogButton.Primary,
+                RequestedTheme = ThemeService.Instance.ElementTheme
             };
 
-            var result = await dialog.ShowAsync();
+            var result = await DialogCoordinator.ShowAsync(dialog, ThemeService.Instance.ElementTheme);
             if (result != ContentDialogResult.Primary)
             {
                 return null;
@@ -1254,7 +1242,7 @@ namespace Slinky
 
         private async Task ShowInfoDialogAsync(string title, string message)
         {
-            if (contentDialogOpen)
+            if (DialogCoordinator.IsOpen)
             {
                 return;
             }
@@ -1266,15 +1254,7 @@ namespace Slinky
                 CloseButtonText = "OK",
                 RequestedTheme = ThemeService.Instance.ElementTheme
             };
-            contentDialogOpen = true;
-            try
-            {
-                await dialog.ShowAsync();
-            }
-            finally
-            {
-                contentDialogOpen = false;
-            }
+            await DialogCoordinator.ShowAsync(dialog, ThemeService.Instance.ElementTheme);
         }
     }
 }

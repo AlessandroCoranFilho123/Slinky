@@ -250,8 +250,8 @@ namespace Slinky.Views
                 RequestedTheme = Theme.ElementTheme
             };
 
-            var result = await dialog.ShowAsync();
-            if (result != ContentDialogResult.Primary)
+            var result = await DialogCoordinator.ShowAsync(dialog, Theme.ElementTheme);
+            if (result is not ContentDialogResult.Primary)
             {
                 return;
             }
@@ -275,7 +275,7 @@ namespace Slinky.Views
                 CloseButtonText = "OK",
                 RequestedTheme = Theme.ElementTheme
             };
-            await dialog.ShowAsync();
+            await DialogCoordinator.ShowAsync(dialog, Theme.ElementTheme);
         }
 
         // ----- Edit menu operations (called from MainWindow's "Editar" menu) ------------------------------
