@@ -1,9 +1,17 @@
-version: 2
+﻿version: 2
 updates:
   - package-ecosystem: "nuget"
     directory: "/"
     schedule:
       interval: "weekly"
+    # Os componentes granulares do Windows App SDK (WinUI, Runtime, DWrite)
+    # precisam permanecer na MESMA linha de versão: um bump major isolado (ex.:
+    # DWrite 2.6.5 com Runtime 1.8) é bloqueado pela validação do próprio SDK
+    # (CI falha). Major bumps isolados são rejeitados; migrar a linha inteira
+    # de uma vez é decisão manual e testada.
+    ignore:
+      - dependency-name: "Microsoft.WindowsAppSDK.*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

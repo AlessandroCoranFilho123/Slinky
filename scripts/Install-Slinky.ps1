@@ -7,7 +7,22 @@ param(
 $ErrorActionPreference = 'Stop'
 
 if ([string]::IsNullOrWhiteSpace($PackagePath)) {
-    $PackagePath = Join-Path $PSScriptRoot 'Slinky-v1.0.11-x64.msixbundle'
+    $processorArchitecture = if ($env:PROCESSOR_ARCHITEW6432) {
+        $env:PROCESSOR_ARCHITEW6432
+    } else {
+        $env:PROCESSOR_ARCHITECTURE
+    }
+    $assetArchitecture = switch ($processorArchitecture.ToUpperInvariant()) {
+        'ARM64' { 'ARM64' }
+        'X86' { 'x86' }
+        default { 'x64' }
+    }
+    $packages = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter '*.msixbundle' -File |
+        Where-Object { $_.Name -match ("-" + [regex]::Escape($assetArchitecture) + "\.msixbundle$") })
+    if ($packages.Count -ne 1) {
+        throw "Esperado exatamente um bundle para $assetArchitecture ao lado de Install-Slinky.ps1; encontrado: $($packages.Name -join ', '). Informe -PackagePath explicitamente."
+    }
+    $PackagePath = $packages[0].FullName
 }
 if ([string]::IsNullOrWhiteSpace($CertificatePath)) {
     $CertificatePath = Join-Path $PSScriptRoot 'Slinky-Release.cer'

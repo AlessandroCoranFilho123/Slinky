@@ -1,4 +1,4 @@
-name: Testes e build
+﻿name: Testes e build
 
 on:
   push:
@@ -120,7 +120,7 @@ jobs:
           Export-Certificate -Cert $certificate -FilePath "$env:GITHUB_WORKSPACE\msix-signing.cer" -Type CERT | Out-Null
           "APPX_CERT_THUMBPRINT=$($certificate.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Gerar MSIX unsigned x64
+      - name: Gerar MSIX x64 assinado com cert efêmero
         run: >-
           dotnet build Slinky/Slinky.csproj
           --configuration Release
@@ -183,7 +183,7 @@ jobs:
           Import-Certificate -FilePath $certificate.FullName -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
           Import-Certificate -FilePath $certificate.FullName -CertStoreLocation 'Cert:\LocalMachine\Root' | Out-Null
 
-      - name: Instalar pacote MSIX unsigned
+      - name: Instalar pacote MSIX assinado (smoke de instalação)
         shell: pwsh
         run: |
           $package = Get-ChildItem -Path msix -Filter *.msixbundle -Recurse -File |
