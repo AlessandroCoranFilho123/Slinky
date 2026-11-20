@@ -355,7 +355,6 @@ namespace Slinky.Models
         private async void AutosaveTimer_Tick(object? sender, object e)
         {
             autosaveTimer?.Stop();
-            try { System.IO.File.AppendAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "slinky-autosave.log"), DateTime.Now.ToString("HH:mm:ss.fff") + " tick: textLen=" + Text.Length + " dirty=" + IsDirty + " canSchedule=" + recoveryLifecycle.CanSchedule.ToString().ToLowerInvariant() + Environment.NewLine); } catch { }
 
             // F-07: não agenda com tick em voo — evita fila de serializações.
             if (autosaveInFlight || !recoveryLifecycle.CanSchedule || !IsDirty)
@@ -370,6 +369,7 @@ namespace Slinky.Models
                     return;
                 }
 
+                autosaveInFlight = true;
                 // The generation captured here is checked after the write: if the user
                 // saved/closed/deleted while the snapshot was in flight (generation moved),
                 // RecoveryService refuses the stale write instead of resurrecting it.
@@ -389,7 +389,7 @@ namespace Slinky.Models
                 await RecoveryService.SaveSnapshotAsync(recoveryId, snapshot, generation);
                 autosavePendingSince = null;
                 // F-07: reagenda se houver edição nova durante a gravação em voo.
-                if (IsDirty) { ScheduleAutosave(); }
+                if (IsDirty && !string.Equals(Text, snapshot.Text, StringComparison.Ordinal)) { ScheduleAutosave(); }
             }
             catch
             {
@@ -397,6 +397,10 @@ namespace Slinky.Models
                 // normal (2 s) em vez do teto de 1 ms.
                 autosavePendingSince = null;
                 // Recovery is a best-effort safety net; a failure here shouldn't interrupt editing.
+            }
+            finally
+            {
+                autosaveInFlight = false;
             }
         }
 
