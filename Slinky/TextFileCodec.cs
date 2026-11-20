@@ -192,9 +192,29 @@ public static class TextFileCodec
             _ => new UTF8Encoding(hasBom)
         };
 
-        /// <summary>F-18: byte NUL indica conteúdo binário, não documento de texto.</summary>
+        /// <summary>
+        /// Detecta conteúdo binário sem rejeitar UTF-16 com BOM: NUL é normal na
+        /// representação em bytes de texto ASCII UTF-16.
+        /// </summary>
         public static bool LooksLikeBinary(byte[] bytes)
         {
+            ArgumentNullException.ThrowIfNull(bytes);
+
+            var span = bytes.AsSpan();
+            if (span.StartsWith(new byte[] { 0xFF, 0xFE }) ||
+                span.StartsWith(new byte[] { 0xFE, 0xFF }))
+            {
+                return false;
+            }
+
+            // Assinaturas que não contêm NUL no cabeçalho inicial e, portanto,
+            // não seriam cobertas pela heurística abaixo.
+            if (span.StartsWith(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }) ||
+                span.StartsWith(new byte[] { 0x4D, 0x5A }))
+            {
+                return true;
+            }
+
             foreach (var b in bytes)
             {
                 if (b == 0) return true;

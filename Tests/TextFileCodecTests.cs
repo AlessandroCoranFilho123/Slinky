@@ -103,6 +103,38 @@ public sealed class TextFileCodecTests
         Assert.Equal(LineEndingKind.CrLf, result.LineEnding);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LooksLikeBinary_AcceptsUtf16TextWithBom(bool bigEndian)
+    {
+        var encoding = new UnicodeEncoding(bigEndian, byteOrderMark: true);
+        var bytes = encoding.GetPreamble().Concat(encoding.GetBytes("texto ASCII")).ToArray();
+
+        Assert.False(TextFileCodec.LooksLikeBinary(bytes));
+    }
+
+    [Fact]
+    public void LooksLikeBinary_RejectsNulInUtf8Text()
+    {
+        Assert.True(TextFileCodec.LooksLikeBinary(Encoding.UTF8.GetBytes("texto\0corrompido")));
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A })]
+    [InlineData(new byte[] { 0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00, 0x00, 0x00 })]
+    public void LooksLikeBinary_RejectsKnownBinaryHeaders(byte[] bytes)
+    {
+        Assert.True(TextFileCodec.LooksLikeBinary(bytes));
+    }
+
+    [Fact]
+    public void Encode_Windows1252WithEmoji_ReportsEncodingFailure()
+    {
+        Assert.Throws<EncoderFallbackException>(() =>
+            TextFileCodec.Encode("texto 🙂", TextEncodingKind.Windows1252, false, LineEndingKind.CrLf));
+    }
+
     [Fact]
     public void RecoverySnapshotCodec_RoundTripsRealDiskJson()
     {
