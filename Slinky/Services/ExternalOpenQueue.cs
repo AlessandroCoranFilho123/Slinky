@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Windows.Storage;
 
@@ -18,7 +19,8 @@ namespace Slinky.Services
     /// </summary>
     public static class ExternalOpenQueue
     {
-        private const string Key = "PendingExternalOpens";
+        private const string LegacyKey = "PendingExternalOpens";
+        private const string EntryKeyPrefix = "PendingExternalOpen.";
         private static readonly Mutex QueueMutex = new Mutex(false, "Local\\Slinky-ExternalOpenQueue");
 
         public static void Enqueue(string path)
@@ -26,7 +28,18 @@ namespace Slinky.Services
             ComLock(() =>
             {
                 var settings = ApplicationData.Current.LocalSettings;
-                settings.Values[Key] = ExternalOpenQueuePolicy.Merge(settings.Values[Key] as string, path);
+                // LocalSettings limita cada valor a cerca de 8 KB. Guardar toda a
+                // fila em um JSON único perdia ativações quando muitos caminhos
+                // longos chegavam de uma seleção múltipla; uma entrada por caminho
+                // mantém cada valor pequeno e o mutex preserva a operação atômica.
+                var ticks = DateTime.UtcNow.Ticks;
+                var key = EntryKeyPrefix + ticks.ToString("D19");
+                while (settings.Values.ContainsKey(key))
+                {
+                    ticks++;
+                    key = EntryKeyPrefix + ticks.ToString("D19");
+                }
+                settings.Values[key] = path;
             });
         }
 
@@ -36,8 +49,22 @@ namespace Slinky.Services
             ComLock(() =>
             {
                 var settings = ApplicationData.Current.LocalSettings;
-                caminhos = ExternalOpenQueuePolicy.TakeAll(settings.Values[Key] as string);
-                settings.Values.Remove(Key);
+                var drained = ExternalOpenQueuePolicy.TakeAll(settings.Values[LegacyKey] as string);
+                settings.Values.Remove(LegacyKey);
+
+                var keys = settings.Values.Keys
+                    .Where(key => key.StartsWith(EntryKeyPrefix, StringComparison.Ordinal))
+                    .OrderBy(key => key, StringComparer.Ordinal)
+                    .ToList();
+                foreach (var key in keys)
+                {
+                    if (settings.Values[key] is string path && !string.IsNullOrWhiteSpace(path))
+                    {
+                        drained.Add(path);
+                    }
+                    settings.Values.Remove(key);
+                }
+                caminhos = drained;
             });
             return caminhos;
         }

@@ -48,5 +48,22 @@ namespace Slinky.Tests
         {
             Assert.Empty(ExternalOpenQueuePolicy.TakeAll(json));
         }
+
+        [Fact]
+        public void Merge_EscapaECarregaCemCaminhosLongosComUnicode()
+        {
+            var paths = Enumerable.Range(0, 100)
+                .Select(index => "C:\\pasta com espaco\\\"aspas\"\\漢字\\" + new string('x', 180) + index + ".txt")
+                .ToArray();
+            string? json = null;
+
+            foreach (var path in paths)
+            {
+                json = ExternalOpenQueuePolicy.Merge(json, path);
+            }
+
+            Assert.Equal(paths, ExternalOpenQueuePolicy.TakeAll(json));
+            Assert.True(json!.Length > 8 * 1024);
+        }
     }
 }
