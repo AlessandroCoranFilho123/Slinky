@@ -15,18 +15,20 @@ namespace Slinky.IntegrationTests
     public class ConcurrencyTests : IDisposable
     {
         private readonly string _directory;
+        private readonly Func<Task<StorageFolder>> _originalLocalFolderProvider;
 
         public ConcurrencyTests()
         {
             _directory = Path.Combine(Path.GetTempPath(), "slinky-it-" + Guid.NewGuid().ToString("N").Substring(0, 12));
             Directory.CreateDirectory(_directory);
+            _originalLocalFolderProvider = StateFolders.LocalFolderProvider;
             StateFolders.LocalFolderProvider = () =>
                 StorageFolder.GetFolderFromPathAsync(_directory).AsTask();
         }
 
         public void Dispose()
         {
-            StateFolders.LocalFolderProvider = null; // restaura o padrão (ApplicationData)
+            StateFolders.LocalFolderProvider = _originalLocalFolderProvider;
             try { Directory.Delete(_directory, recursive: true); } catch { }
         }
 
