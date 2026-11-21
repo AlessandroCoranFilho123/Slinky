@@ -139,17 +139,22 @@ $b = Join-Path $env:TEMP 'slinky-si-b.txt'
 Set-Content -Path $a -Value 'conteudo do arquivo a' -Encoding UTF8
 Set-Content -Path $b -Value 'conteudo do arquivo b' -Encoding UTF8
 
-# ---- 1. abrir A ----
+# ---- 1. abrir A (o FUA LANCA o app com o arquivo: estado limpo, sem aba vazia) ----
 AbrirViaProgId $a
 if (-not (Esperar { (Procs) -ge 1 -and @((NomesAbas) | Where-Object { $_ -match 'si-a\.txt' }).Count -ge 1 } 30)) { $failures += 'arquivo A nao abriu como aba' }
 '1. apos abrir A: processos=' + (Procs) + ' abas=[' + ((NomesAbas) -join ' | ') + ']'
 if ((Procs) -ne 1) { $failures += 'apos abrir A: processos=' + (Procs) + ' (esperado 1)' }
+$abasA = @(NomesAbas)
+if ($abasA.Count -ne 1) { $failures += ('apos abrir A do startup: ' + $abasA.Count + ' abas (esperado 1 — sem aba vazia): [' + ($abasA -join ' | ') + ']') }
+elseif ($abasA[0] -notmatch 'si-a\.txt') { $failures += ('apos abrir A do startup: a unica aba nao e o arquivo [' + $abasA[0] + ']') }
 
 # ---- 2. abrir B: deve virar ABA na MESMA janela ----
 AbrirViaProgId $b
 $okB = Esperar { (Procs) -eq 1 -and @((NomesAbas) | Where-Object { $_ -match 'si-b\.txt' }).Count -ge 1 } 25
 '2. apos abrir B: processos=' + (Procs) + ' abas=[' + ((NomesAbas) -join ' | ') + ']'
 if (-not $okB) { $failures += 'arquivo B nao virou aba na mesma janela (processos=' + (Procs) + ', abas=[' + ((NomesAbas) -join ' | ') + '])' }
+$abasB = @(NomesAbas)
+if ($abasB.Count -ne 2) { $failures += ('apos abrir B com app rodando: ' + $abasB.Count + ' abas (esperado 2): [' + ($abasB -join ' | ') + ']') }
 
 # ---- 3. Nova janela: multi-janela intencional preservado ----
 if (MenuArquivoItem (JanelaPrincipal) 'Nova janela') {
