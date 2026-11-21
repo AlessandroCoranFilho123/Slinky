@@ -1,17 +1,23 @@
 ﻿# Matriz de TRANSICOES de tema: as 25 combinacoes 5x5 (de -> para), com estados medidos
 # APOS cada troca (1 s de assentamento — com pinceis estaveis nao ha re-aplicacao de recursos).
+# GEOMETRIA VIA UIA: posicoes das abas, do "x" de cada aba e do botao "+" vem dos
+# BoundingRectangle reais (as coordenadas fixas antigas eram fantasma — a matriz chegou
+# a rodar com 1 aba e os hovers em abas 2/3 e "+" caiam na strip vazia, passando vazio).
+# O script GARANTE 3 abas via UIA antes de medir.
 # Para cada transicao, com cursor REAL:
-#   1) hover em cada uma das 3 abas (a 1a selecionada, as demais nao);
-#   2) hover no "x" da aba 3 e, depois, PÓS-LEAVE (mouse em area neutra): o sintoma
-#      relatado era o hover do "x" ficar ativo mesmo sem o mouse em cima;
-#   3) fundo do strip onde as abas ficam (x 8-110, fora da primeira aba);
-#   4) botao "+" normal e hover;
-#   5) residuo: ZERO pixels da paleta do tema ANTERIOR no strip (pincel/recurso velho
-#      preso e a assinatura de todas as regressoes de tema ja vistas neste app);
-#   6) ZERO pixels de azul-accent do SISTEMA (#0078D4 e vizinhos) no strip.
-# Validacao por MODA das cores da regiao (tolerancia +-12) contra ThemePalette.
+#   1) hover na aba NAO selecionada: header = cor de hover da paleta e o "x" mistura
+#      com o header (estado PointerOver pinta header E close button com a mesma chave);
+#   2) hover no "x" da nao selecionada: cor de hover;
+#   3) hover na aba SELECIONADA: o header NAO muda de cor (o estado Selected mantem
+#      TabViewItemHeaderBackground; o visual vem do "pill" SelectedBackgroundPath) e o
+#      "x" continua misturando com o header;
+#   4) hover no "x" da SELECIONADA: cor de hover VISIVEL sobre o header (o sintoma
+#      relatado era o oposto: a caixa de hover PERMANECIA sem o mouse);
+#   5) PÓS-LEAVE: mouse em area neutra — o "x" volta ao fundo da aba (igual ao header,
+#      tolerancia ±5) em ambas as abas; fundo do strip e "+" normais;
+#   6) ZERO pixels de azul-accent do SISTEMA e ZERO residuo da paleta do tema ANTERIOR.
 # Variaveis de ambiente:
-#   SO_TRANSICAO = "Origem->Destino" roda uma unica transicao (spike/investigacao)
+#   SO_TRANSICAO = "Origem-Destino" roda uma unica transicao (spike/investigacao)
 #   SO_TEMA      = restringe o TEMA DE DESTINO (todas as origens)
 # Requisitos: pacote de desenvolvimento instalado. Nao usa documentos do usuario.
 # Arquivo 100% ASCII de proposito (PowerShell 5.1 + UTF-8 sem BOM quebram acentos).
@@ -29,7 +35,12 @@ public class W32H3 {
     [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
     [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
     [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+    [DllImport("user32.dll")] public static extern int GetSystemMetrics(int nIndex);
     public struct RECT { public int Left, Top, Right, Bottom; }
+    public struct POINT { public int X, Y; }
 }
 '@
 $dirScript = $PSScriptRoot
@@ -58,6 +69,52 @@ function Chord([byte]$vk) {
     [W32H3]::keybd_event(0x11, 0, 2, [UIntPtr]::Zero)
 }
 function Foreground { foreach ($p in (Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 })) { [W32H3]::SetForegroundWindow($p.MainWindowHandle) | Out-Null } }
+
+# MOVIMENTO EM PASSOS via mouse_event ABSOLUTE: o WinUI 3 consome a pilha de entrada
+# WM_POINTER — SetCursorPos move o CURSOR sem gerar evento de entrada (o app nunca
+# ve o movimento e os estados de hover nao aplicam); mouse_event injeta eventos
+# reais, iguais aos de um mouse fisico. Passo de ~40 ms por segmento.
+function MoverPara([int]$x, [int]$y) {
+    $ponto = New-Object W32H3+POINT
+    [W32H3]::GetCursorPos([ref]$ponto) | Out-Null
+    $telaW = [W32H3]::GetSystemMetrics(0)
+    $telaH = [W32H3]::GetSystemMetrics(1)
+    for ($s = 1; $s -le 10; $s++) {
+        $nx = [int]($ponto.X + ($x - $ponto.X) * $s / 10)
+        $ny = [int]($ponto.Y + ($y - $ponto.Y) * $s / 10)
+        $ax = [int][Math]::Round($nx * 65535.0 / ($telaW - 1))
+        $ay = [int][Math]::Round($ny * 65535.0 / ($telaH - 1))
+        [W32H3]::mouse_event(0x0001 -bor 0x8000, $ax, $ay, 0, [UIntPtr]::Zero)
+        Start-Sleep -Milliseconds 40
+    }
+    $ax = [int][Math]::Round($x * 65535.0 / ($telaW - 1))
+    $ay = [int][Math]::Round($y * 65535.0 / ($telaH - 1))
+    [W32H3]::mouse_event(0x0001 -bor 0x8000, $ax, $ay, 0, [UIntPtr]::Zero)
+}
+
+# Estados de PointerOver nao aplicam de forma confiavel sem a janela ATIVA, e o
+# SetForegroundWindow puro perde a disputa do foreground lock do Windows. Garante
+# ativacao com clique neutro (strip a direita do "+", ou centro da janela antes das
+# abas existirem — nenhum dos dois tem handler no app).
+function AtivarJanela {
+    Foreground
+    Start-Sleep -Milliseconds 200
+    $p = Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+    if (-not $p -or [W32H3]::GetForegroundWindow() -eq $p.MainWindowHandle) { return }
+    $g = ColetarGeometria
+    if ($g -and $g.Plus) {
+        $x = [int]($g.Plus.X + $g.Plus.Width + 80)
+        $y = [int]($g.Plus.Y + $g.Plus.Height / 2)
+    } else {
+        $x = 600
+        $y = 400
+    }
+    MoverPara $x $y
+    [W32H3]::mouse_event(0x0002, 0, 0, 0, [UIntPtr]::Zero)
+    [W32H3]::mouse_event(0x0004, 0, 0, 0, [UIntPtr]::Zero)
+    Start-Sleep -Milliseconds 300
+    Foreground
+}
 function Esperar($condicao, $segundos) {
     for ($i = 0; $i -lt ($segundos * 2); $i++) {
         Start-Sleep -Milliseconds 500
@@ -114,7 +171,7 @@ function Tela($rect) {
     $g.Dispose()
     return $bmp
 }
-# moda das cores do rect do header de uma aba (evita o texto, que e minoria)
+# moda das cores de um box (coords do BITMAP: screen - rect.Left/Top)
 function ModaHeader($bmp, [int]$x0, [int]$x1, [int]$y0, [int]$y1) {
     $cores = @{}
     for ($y = $y0; $y -lt $y1; $y++) {
@@ -127,12 +184,24 @@ function ModaHeader($bmp, [int]$x0, [int]$x1, [int]$y0, [int]$y1) {
     $melhor = $cores.GetEnumerator() | Sort-Object Value -Descending | Select-Object -First 1
     return $melhor.Key
 }
-function CorPerto([string]$moda, [int[]]$esperada) {
+# moda de um box CENTRADO em coords de TELA (meio-largura dx, meio-altura dy)
+function ModaBox($bmp, [double]$sx, [double]$sy, [int]$dx, [int]$dy) {
+    $cx = [int]$sx - $rect.Left
+    $cy = [int]$sy - $rect.Top
+    return ModaHeader $bmp ($cx - $dx) ($cx + $dx) ($cy - $dy) ($cy + $dy)
+}
+function CorPerto([string]$moda, [int[]]$esperada, [int]$tol = 12) {
     $p = $moda.Split(',')
     $dr = [Math]::Abs([int]$p[0] - $esperada[0])
     $dg = [Math]::Abs([int]$p[1] - $esperada[1])
     $db = [Math]::Abs([int]$p[2] - $esperada[2])
-    return ($dr -le 12 -and $dg -le 12 -and $db -le 12)
+    return ($dr -le $tol -and $dg -le $tol -and $db -le $tol)
+}
+# duas medicoes pertencem a mesma cor (ex.: "x" igual ao header da propria aba)
+function MesmaCor([string]$a, [string]$b, [int]$tol) {
+    $pa = $a.Split(',')
+    $pb = $b.Split(',')
+    return ([Math]::Abs([int]$pa[0] - [int]$pb[0]) -le $tol -and [Math]::Abs([int]$pa[1] - [int]$pb[1]) -le $tol -and [Math]::Abs([int]$pa[2] - [int]$pb[2]) -le $tol)
 }
 function CorPertoRGB($c, [int[]]$alvo) {
     return ([Math]::Abs($c.R - $alvo[0]) -le 10 -and [Math]::Abs($c.G - $alvo[1]) -le 10 -and [Math]::Abs($c.B - $alvo[2]) -le 10)
@@ -163,7 +232,174 @@ function ContaResiduo($bmp, $prev, $cur, [int]$x0, [int]$x1, [int]$y0, [int]$y1)
     return $n
 }
 
-# ---- limpar, abrir, 3 abas ----
+# ---- geometria via UIA: abas (rect, rect do "x", selecionada) e botao "+" ----
+function ColetarGeometria {
+    $p = Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+    if (-not $p) { return $null }
+    $r = [Windows.Automation.AutomationElement]::FromHandle($p.MainWindowHandle)
+    $condTab = New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::TabItem)
+    $tabsUi = @($r.FindAll([Windows.Automation.TreeScope]::Descendants, $condTab))
+    if ($tabsUi.Count -eq 0) { return $null }
+    $condBtn = New-Object Windows.Automation.PropertyCondition([Windows.Automation.AutomationElement]::ControlTypeProperty, [Windows.Automation.ControlType]::Button)
+    $botoes = @($r.FindAll([Windows.Automation.TreeScope]::Descendants, $condBtn))
+    $tabs = @()
+    $maxDir = 0
+    foreach ($t in $tabsUi) {
+        $tr = $t.Current.BoundingRectangle
+        if ($tr.Width -le 0) { continue }
+        $closeRect = $null
+        foreach ($b in $botoes) {
+            $br = $b.Current.BoundingRectangle
+            if ($br.Width -le 0) { continue }
+            if ($br.X -ge $tr.X - 1 -and ($br.X + $br.Width) -le ($tr.X + $tr.Width + 1) -and $br.Y -ge $tr.Y - 1 -and ($br.Y + $br.Height) -le ($tr.Y + $tr.Height + 1)) { $closeRect = $br; break }
+        }
+        $sel = $false
+        try { $sel = $t.GetCurrentPattern([Windows.Automation.SelectionItemPattern]::Pattern).Current.IsSelected } catch { }
+        $tabs += [pscustomobject]@{ Rect = $tr; CloseRect = $closeRect; Selected = $sel }
+        $dir = $tr.X + $tr.Width
+        if ($dir -gt $maxDir) { $maxDir = $dir }
+    }
+    # botao "+": Button na MESMA faixa vertical das abas, FORA de todo TabItem,
+    # a direita do ultimo (os caption buttons ficam acima; MenuBar e MenuItem)
+    $faixaY = $tabs[0].Rect.Y
+    $plus = $null
+    foreach ($b in $botoes) {
+        $br = $b.Current.BoundingRectangle
+        if ($br.Width -le 0 -or $br.Height -le 0) { continue }
+        if ([Math]::Abs($br.Y - $faixaY) -gt 15) { continue }
+        if ($br.X -lt $maxDir - 5) { continue }
+        $plus = $br
+        break
+    }
+    return [pscustomobject]@{ Tabs = $tabs; Plus = $plus }
+}
+
+function GarantirAbas([int]$n) {
+    for ($i = 0; $i -lt 8; $i++) {
+        $g = ColetarGeometria
+        if ($g -and $g.Tabs.Count -ge $n) { return $true }
+        AtivarJanela
+        Chord 0x54   # Ctrl+T
+        Start-Sleep -Seconds 1
+    }
+    $g = ColetarGeometria
+    return ($g -and $g.Tabs.Count -ge $n)
+}
+
+function MedirEstados([string]$de, [string]$para) {
+    $pal = $paletas[$para]
+    $tag = $de + '-' + $para
+
+    $g = ColetarGeometria
+    if (-not $g -or $g.Tabs.Count -lt 2 -or -not $g.Plus) {
+        $n = $(if ($g) { $g.Tabs.Count } else { -1 })
+        $script:failures += ($tag + ': geometria UIA incompleta (abas=' + $n + ', plus=' + [bool]($g -and $g.Plus) + ')')
+        return
+    }
+    $sel = $g.Tabs | Where-Object { $_.Selected } | Select-Object -First 1
+    $unsel = $g.Tabs | Where-Object { -not $_.Selected } | Select-Object -First 1
+    if (-not $sel -or -not $unsel -or -not $sel.CloseRect -or -not $unsel.CloseRect) {
+        $script:failures += ($tag + ': aba selecionada/nao selecionada sem rect de close button')
+        return
+    }
+    $cxSelX = [int]($sel.CloseRect.X + $sel.CloseRect.Width / 2)
+    $cxSelY = [int]($sel.CloseRect.Y + $sel.CloseRect.Height / 2)
+    $cxUnX = [int]($unsel.CloseRect.X + $unsel.CloseRect.Width / 2)
+    $cxUnY = [int]($unsel.CloseRect.Y + $unsel.CloseRect.Height / 2)
+    $cPlusX = [int]($g.Plus.X + $g.Plus.Width / 2)
+    $cPlusY = [int]($g.Plus.Y + $g.Plus.Height / 2)
+    $neutroX = [int]($g.Plus.X + $g.Plus.Width + 80)
+    # probe do header: caixa entre o texto e o "x", dentro do TabContainer
+    $hSelX = [int]$sel.CloseRect.X - 16
+    $hUnX = [int]$unsel.CloseRect.X - 16
+
+    AtivarJanela
+
+    # ---- (a) hover na aba NAO selecionada: header vira cor de hover e o "x" mistura ----
+    MoverPara ([int]($unsel.Rect.X + $unsel.Rect.Width * 0.45)) $cxUnY
+    Start-Sleep -Milliseconds 900
+    $bmp = Tela $rect
+    $mHeader = ModaBox $bmp ($unsel.Rect.X + $unsel.Rect.Width * 0.45) $cxUnY 10 8
+    $mX = ModaBox $bmp $cxUnX $cxUnY 10 8
+    $azul = ContaAzulSistema $bmp
+    Write-Host ('  hover nao-sel: header=[' + $mHeader + '] x=[' + $mX + '] azul=' + $azul)
+    if (-not (CorPerto $mHeader $pal.bg 5)) { $script:failures += ($tag + '/header nao-sel hover deveria ser cor de hover: [' + $mHeader + ']') }
+    if (-not (MesmaCor $mX $mHeader 5)) { $script:failures += ($tag + '/x nao-sel (tab hover) deveria misturar com o header: x=[' + $mX + '] header=[' + $mHeader + ']') }
+    if ($azul -gt 0) { $script:failures += ($tag + '/hover nao-sel: ' + $azul + ' px azul-sistema') }
+    $bmp.Dispose()
+
+    # ---- (b) hover no "x" da NAO selecionada: cor de hover ----
+    MoverPara $cxUnX $cxUnY
+    Start-Sleep -Milliseconds 900
+    $bmp = Tela $rect
+    $mXHover = ModaBox $bmp $cxUnX $cxUnY 10 8
+    $azul = ContaAzulSistema $bmp
+    Write-Host ('  hover x nao-sel: [' + $mXHover + '] azul=' + $azul)
+    if (-not (CorPerto $mXHover $pal.bg 5)) { $script:failures += ($tag + '/x nao-sel hover deveria ser cor de hover: [' + $mXHover + ']') }
+    if ($azul -gt 0) { $script:failures += ($tag + '/x nao-sel hover: ' + $azul + ' px azul-sistema') }
+    $bmp.Dispose()
+
+    # ---- (c) hover na aba SELECIONADA: header NAO muda e o "x" continua misturando ----
+    MoverPara ([int]($sel.Rect.X + $sel.Rect.Width * 0.45)) $cxSelY
+    Start-Sleep -Milliseconds 900
+    $bmp = Tela $rect
+    $mHeaderSel = ModaBox $bmp ($sel.Rect.X + $sel.Rect.Width * 0.45) $cxSelY 10 8
+    $mXSel = ModaBox $bmp $cxSelX $cxSelY 10 8
+    $azul = ContaAzulSistema $bmp
+    Write-Host ('  hover sel: header=[' + $mHeaderSel + '] x=[' + $mXSel + '] azul=' + $azul)
+    if (-not ((CorPerto $mHeaderSel $pal.bg) -or (CorPerto $mHeaderSel $pal.surface))) { $script:failures += ($tag + '/header sel hover: [' + $mHeaderSel + ']') }
+    if (-not (MesmaCor $mXSel $mHeaderSel 5)) { $script:failures += ($tag + '/x sel (tab hover) deveria misturar com o header: x=[' + $mXSel + '] header=[' + $mHeaderSel + ']') }
+    if ($azul -gt 0) { $script:failures += ($tag + '/hover sel: ' + $azul + ' px azul-sistema') }
+    $bmp.Dispose()
+
+    # ---- (d) hover no "x" da SELECIONADA: cor de hover VISIVEL sobre o header ----
+    MoverPara $cxSelX $cxSelY
+    Start-Sleep -Milliseconds 900
+    $bmp = Tela $rect
+    $mXSelHover = ModaBox $bmp $cxSelX $cxSelY 10 8
+    $azul = ContaAzulSistema $bmp
+    Write-Host ('  hover x sel: [' + $mXSelHover + '] azul=' + $azul)
+    if (-not (CorPerto $mXSelHover $pal.bg 5)) { $script:failures += ($tag + '/x sel hover deveria ser cor de hover: [' + $mXSelHover + ']') }
+    if ($azul -gt 0) { $script:failures += ($tag + '/x sel hover: ' + $azul + ' px azul-sistema') }
+    $bmp.Save((Join-Path $PhotosDir ($tag + '-hoverX.png')), [System.Drawing.Imaging.ImageFormat]::Png)
+    $bmp.Dispose()
+
+    # ---- (e) PÓS-LEAVE: o "x" volta ao fundo da aba (o sintoma relatado era ficar preso) ----
+    MoverPara $neutroX $cxSelY
+    Start-Sleep -Milliseconds 1000
+    $bmp = Tela $rect
+    $mHeaderSel2 = ModaBox $bmp $hSelX $cxSelY 6 6
+    $mXSelPost = ModaBox $bmp $cxSelX $cxSelY 10 8
+    $mHeaderUn2 = ModaBox $bmp $hUnX $cxUnY 6 6
+    $mXUnPost = ModaBox $bmp $cxUnX $cxUnY 10 8
+    $mStrip = ModaBox $bmp ($neutroX + 40) $cxSelY 40 8
+    $mPlus = ModaBox $bmp $cPlusX $cPlusY 10 8
+    $azul = ContaAzulSistema $bmp
+    $residuo = if ($de -ne $para) { ContaResiduo $bmp $paletas[$de] $pal 8 1100 72 118 } else { 0 }
+    Write-Host ('  pos-leave: headerSel=[' + $mHeaderSel2 + '] xSel=[' + $mXSelPost + '] headerUn=[' + $mHeaderUn2 + '] xUn=[' + $mXUnPost + '] strip=[' + $mStrip + '] +=[' + $mPlus + '] azul=' + $azul + ' residuo=' + $residuo)
+    if (-not (MesmaCor $mXSelPost $mHeaderSel2 5)) { $script:failures += ($tag + '/x sel pos-leave deveria voltar ao fundo da aba: x=[' + $mXSelPost + '] header=[' + $mHeaderSel2 + ']') }
+    if (-not (MesmaCor $mXUnPost $mHeaderUn2 5)) { $script:failures += ($tag + '/x nao-sel pos-leave deveria voltar ao fundo da aba: x=[' + $mXUnPost + '] header=[' + $mHeaderUn2 + ']') }
+    foreach ($m in @(@{ n = 'header sel'; c = $mHeaderSel2 }, @{ n = 'header nao-sel'; c = $mHeaderUn2 }, @{ n = 'strip'; c = $mStrip }, @{ n = '+ normal'; c = $mPlus })) {
+        if (-not ((CorPerto $m.c $pal.bg) -or (CorPerto $m.c $pal.surface))) { $script:failures += ($tag + '/' + $m.n + ' pos-leave: [' + $m.c + ']') }
+    }
+    if ($azul -gt 0) { $script:failures += ($tag + '/pos-leave: ' + $azul + ' px azul-sistema') }
+    if ($residuo -gt 300) { $script:failures += ($tag + '/pos-leave: ' + $residuo + ' px residuais do tema anterior ' + $de) }
+    $bmp.Save((Join-Path $PhotosDir ($tag + '.png')), [System.Drawing.Imaging.ImageFormat]::Png)
+    $bmp.Dispose()
+
+    # ---- (f) hover no "+" ----
+    MoverPara $cPlusX $cPlusY
+    Start-Sleep -Milliseconds 900
+    $bmp = Tela $rect
+    $mPlusHover = ModaBox $bmp $cPlusX $cPlusY 10 8
+    $azul = ContaAzulSistema $bmp
+    Write-Host ('  + hover: [' + $mPlusHover + '] azul=' + $azul)
+    if (-not ((CorPerto $mPlusHover $pal.bg) -or (CorPerto $mPlusHover $pal.surface))) { $script:failures += ($tag + '/+ hover: [' + $mPlusHover + ']') }
+    if ($azul -gt 0) { $script:failures += ($tag + '/+ hover: ' + $azul + ' px azul-sistema') }
+    $bmp.Dispose()
+}
+
+# ---- limpar, abrir, garantir 3 abas ----
 Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
 $rec = Join-Path $env:LOCALAPPDATA 'Packages\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90qj\LocalState\Recovery'
 Remove-Item (Join-Path $rec '*') -Force -Recurse -ErrorAction SilentlyContinue
@@ -171,91 +407,25 @@ Remove-Item (Join-Path $env:LOCALAPPDATA 'Packages\46cebc95-b2f1-4e6a-819f-02272
 Start-Sleep -Seconds 2
 Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90qj!App'
 Start-Sleep -Seconds 8
-Foreground
-Start-Sleep -Seconds 1
-Chord 0x54; Start-Sleep -Seconds 1
-Chord 0x54; Start-Sleep -Seconds 1
+if (-not (GarantirAbas 3)) {
+    Write-Host 'FALHA: nao consegui garantir 3 abas via UIA (Ctrl+T)'
+    Get-Process Slinky -ErrorAction SilentlyContinue | Stop-Process -Force
+    exit 1
+}
 $p = Get-Process Slinky -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
 $rect = New-Object W32H3+RECT
 [W32H3]::GetWindowRect($p.MainWindowHandle, [ref]$rect) | Out-Null
-# posicoes em coords de JANELA (medidas dos headers reais das abas)
-$abasX = @(135, 375, 615)
-$fecharX = @(235, 475, 715)
-$plusX = 760
-$neutroX = 850
-
-function MedirEstados([string]$de, [string]$para) {
-    $pal = $paletas[$para]
-    $tag = $de + '-' + $para
-
-    # hover em cada uma das 3 abas (aba 1 permanece selecionada; 2 e 3 nao)
-    for ($i = 0; $i -lt 3; $i++) {
-        [W32H3]::SetCursorPos($rect.Left + $abasX[$i], $rect.Top + 93) | Out-Null
-        Start-Sleep -Milliseconds 900
-        $bmp = Tela $rect
-        $moda = ModaHeader $bmp ($abasX[$i] - 60) ($abasX[$i] + 60) 80 112
-        $azul = ContaAzulSistema $bmp
-        Write-Host ('  hover aba' + ($i + 1) + ': [' + $moda + '] azul=' + $azul)
-        if (-not ((CorPerto $moda $pal.bg) -or (CorPerto $moda $pal.surface))) { $failures += ($tag + '/aba' + ($i + 1) + ' hover: [' + $moda + ']') }
-        if ($azul -gt 0) { $failures += ($tag + '/aba' + ($i + 1) + ' hover: ' + $azul + ' px azul-sistema') }
-        $bmp.Dispose()
-    }
-
-    # hover no "x" da aba 3 (close button)
-    [W32H3]::SetCursorPos($rect.Left + $fecharX[2], $rect.Top + 93) | Out-Null
-    Start-Sleep -Milliseconds 900
-    $bmp = Tela $rect
-    $modaX = ModaHeader $bmp ($fecharX[2] - 40) ($fecharX[2] + 40) 80 112
-    $azulX = ContaAzulSistema $bmp
-    Write-Host ('  hover x3: [' + $modaX + '] azul=' + $azulX)
-    if (-not ((CorPerto $modaX $pal.bg) -or (CorPerto $modaX $pal.surface))) { $failures += ($tag + '/x3 hover: [' + $modaX + ']') }
-    if ($azulX -gt 0) { $failures += ($tag + '/x3 hover: ' + $azulX + ' px azul-sistema') }
-    $bmp.Save((Join-Path $PhotosDir ($tag + '-hoverX.png')), [System.Drawing.Imaging.ImageFormat]::Png)
-    $bmp.Dispose()
-
-    # PÓS-LEAVE: mouse em area neutra; o "x" deve voltar ao estado normal — o sintoma
-    # relatado era o hover do "x" permanecer ativo sem o mouse em cima. Uma unica
-    # captura serve strip, aba selecionada, x3 pos-leave e "+" normal.
-    [W32H3]::SetCursorPos($rect.Left + $neutroX, $rect.Top + 93) | Out-Null
-    Start-Sleep -Milliseconds 1000
-    $bmp = Tela $rect
-    $modaStrip = ModaHeader $bmp 8 110 80 112
-    $modaAba1 = ModaHeader $bmp ($abasX[0] - 60) ($abasX[0] + 60) 80 112
-    $modaX3 = ModaHeader $bmp ($fecharX[2] - 40) ($fecharX[2] + 40) 80 112
-    $modaPlus = ModaHeader $bmp ($plusX - 30) ($plusX + 30) 80 112
-    $azul = ContaAzulSistema $bmp
-    $residuo = if ($de -ne $para) { ContaResiduo $bmp $paletas[$de] $pal 8 1100 72 118 } else { 0 }
-    Write-Host ('  pos-leave: strip=[' + $modaStrip + '] aba1=[' + $modaAba1 + '] x3=[' + $modaX3 + '] +=[' + $modaPlus + '] azul=' + $azul + ' residuo=' + $residuo)
-    foreach ($m in @(@{ n = 'strip'; c = $modaStrip }, @{ n = 'aba1 normal'; c = $modaAba1 }, @{ n = 'x3 pos-leave'; c = $modaX3 }, @{ n = '+ normal'; c = $modaPlus })) {
-        if (-not ((CorPerto $m.c $pal.bg) -or (CorPerto $m.c $pal.surface))) { $failures += ($tag + '/' + $m.n + ': [' + $m.c + ']') }
-    }
-    if ($azul -gt 0) { $failures += ($tag + '/pos-leave: ' + $azul + ' px azul-sistema') }
-    if ($residuo -gt 300) { $failures += ($tag + '/pos-leave: ' + $residuo + ' px residuais do tema anterior ' + $de) }
-    $bmp.Save((Join-Path $PhotosDir ($tag + '.png')), [System.Drawing.Imaging.ImageFormat]::Png)
-    $bmp.Dispose()
-
-    # hover no "+"
-    [W32H3]::SetCursorPos($rect.Left + $plusX, $rect.Top + 93) | Out-Null
-    Start-Sleep -Milliseconds 900
-    $bmp = Tela $rect
-    $modaPlusHover = ModaHeader $bmp ($plusX - 30) ($plusX + 30) 80 112
-    $azul = ContaAzulSistema $bmp
-    Write-Host ('  + hover: [' + $modaPlusHover + '] azul=' + $azul)
-    if (-not ((CorPerto $modaPlusHover $pal.bg) -or (CorPerto $modaPlusHover $pal.surface))) { $failures += ($tag + '/+ hover: [' + $modaPlusHover + ']') }
-    if ($azul -gt 0) { $failures += ($tag + '/+ hover: ' + $azul + ' px azul-sistema') }
-    $bmp.Dispose()
-}
 
 # ---- matriz 5x5: para cada origem, medir todos os destinos ----
 foreach ($de in $temas) {
-    if (-not (SelecionarTema ($de + 'Radio'))) { $failures += ($de + ': radio nao selecionado (origem)'); continue }
+    if (-not (SelecionarTema ($de + 'Radio'))) { $script:failures += ($de + ': radio nao selecionado (origem)'); continue }
     Foreground
     Start-Sleep -Seconds 1
     foreach ($para in $temas) {
         if ($soTema -and $para -ne $soTema) { continue }
-        if ($soTransicao -and ($de + '->' + $para) -ne $soTransicao) { continue }
+        if ($soTransicao -and ($de + '-' + $para) -ne $soTransicao) { continue }
         Write-Host ('== ' + $de + ' -> ' + $para + ' ==')
-        if (-not (SelecionarTema ($para + 'Radio'))) { $failures += ($de + '->' + $para + ': radio nao selecionado'); continue }
+        if (-not (SelecionarTema ($para + 'Radio'))) { $script:failures += ($de + '->' + $para + ': radio nao selecionado'); continue }
         Foreground
         # assentamento fixo curto: pinceis estaveis nao exigem o reprocesso dos 3 s antigos
         Start-Sleep -Seconds 1
