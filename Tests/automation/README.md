@@ -28,7 +28,7 @@ instalado (`Add-AppxPackage` — ver `docs/INSTALACAO-MSIX.md`), PowerShell 5.1
 | `accelerators.ps1` | Atalhos globais vivos (Ctrl+T/Ctrl+N/Ctrl+F) e ausência da tooltip de acelerador no hover da barra de título (pixel-diff com captura ao redor da janela) | **manual** |
 | `statusbar.ps1` | Barra de status em 6 cenários (novo doc, digitação, LF, Windows-1252, >2 MB, tema escuro) com assert por UIA e **fotos** em `docs/smoke-fotos/<data>/`; abre arquivos pela rota FUA (ProgId) | **manual** |
 | `single-instance.ps1` | Arquivos abertos pelo shell concentram em abas na mesma janela (redirect AppLifecycle); Nova janela segue multi-janela; **foto** final | **manual** |
-| `tab-hover.ps1` | Cores das abas em TODOS os 5 temas x estados (hover em cada aba, close button, +): moda da cor = paleta do tema + 0 px azul-accent; fotos por tema/caso | **manual** |
+| `tab-hover.ps1` | **Matriz 5×5 de transições de tema** (origem→destino, `SO_TRANSICAO` roda uma só, `SO_TEMA` filtra destino): hover em cada aba, hover do close button e **pós-leave** (o "x" não pode ficar ativo sem o mouse), botão "+" normal/hover, fundo do strip; moda da cor = paleta do tema de destino, 0 px azul-accent e 0 px de resíduo da paleta do tema anterior no strip; fotos por transição | **manual** |
 | `theme-switch-plus.ps1` | Sequencia do relato (claro → Azulado → Escuro → criar aba → hover): sem paleta clara preservada no botao "+" nem azul; fotos | **manual** |
 | `encodings.ps1` | Round-trip byte-exato de UTF-8/±BOM/UTF-16 LE/BE/1252/emoji/mistos/vazio | **manual** |
 | `stress.ps1` | 100 abas, 300 edições/undos, buscas e alternâncias, com amostragem de memória/handles | **manual** |
