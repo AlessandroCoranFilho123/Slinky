@@ -59,7 +59,7 @@ dotnet build Slinky/Slinky.csproj -c Release --no-restore \
   -p:PublishTrimmed=false -p:WindowsAppSDKSelfContained=true \
   -p:AppxPackageSigningEnabled=true \
   -p:PackageCertificateThumbprint=307E3EC24E852C4588156FDB999433A1CCC11BC0
-# Saída: Slinky/AppPackages/Slinky_1.0.4.0_Test/*.msixbundle
+# Saída: Slinky/AppPackages/Slinky_1.0.12.0_Test/*.msixbundle
 ```
 
 Instalação e lançamento (PowerShell) — leia [`docs/INSTALACAO-MSIX.md`](docs/INSTALACAO-MSIX.md)
@@ -149,7 +149,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
   partida aquecida ~0,4 s até janela / ~0,65 s até editor; 204 MB instalados
   (self-contained).
 - Pacote instalado nesta máquina:
-  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.11.0_x64__1xsa4dc8b90qj`
+  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.12.0_x64__1xsa4dc8b90qj`
   (publisher `CN=Alessandro`, assinatura Developer). O AUMID da seção anterior
   corresponde a essa família.
 - Histórico e causas raiz dos erros de instalação: `docs/INSTALACAO-MSIX.md`.
