@@ -5,6 +5,25 @@ como `body_path` (com `generate_release_notes: false` — a action v2 substituí
 corpo curado pelo changelog automático). **Atualize a seção da nova release aqui
 antes de criar a tag.**
 
+## v1.0.12
+
+**Correção de tema — redesign dos pincéis (causa raiz)**
+
+- **Troca de tema confiável em qualquer ordem**: os 4 pincéis da paleta
+  (Background/Foreground/Surface/Accent) agora são instâncias estáveis cujo
+  `Color` é mutado a cada troca. Antes, cada troca criava pincéis novos e as
+  referências `{ThemeResource}` já resolvidas nos templates ficavam órfãs do
+  pincel antigo — por isso transições dentro do mesmo grupo claro/escuro
+  (Dracula→Azulado, Padrão→Dracula, Padrão→Amarelado) não repintavam abas,
+  botão "+" e estados de hover.
+- **Hover do "X" não fica mais preso** após trocar de tema: a re-aplicação de
+  recursos e o truque `RequestedTheme` por aba desincronizavam os visual states
+  dos templates. A matriz de automação agora valida as 25 transições (5×5) e o
+  estado do botão fechar depois de o mouse sair.
+- **Remoções**: re-aplicação dos 117 recursos de cor a cada troca, truque
+  `RequestedTheme Default→tema` (no TabView e por aba), ThemeTabStateHub e o
+  texto "Todas as abas e janelas abertas atualizam na hora" da janela de tema.
+
 ## v1.0.11
 
 **Robustez (auditoria byte a byte da single-instancing)**
