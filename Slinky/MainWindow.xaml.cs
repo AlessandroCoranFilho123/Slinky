@@ -274,7 +274,12 @@ namespace Slinky
         ("TabViewItemHeaderPointerOverCloseButtonForeground", 2),
         ("TabViewItemHeaderPressedCloseButtonBackground", 1),
         ("TabViewItemHeaderPressedCloseButtonForeground", 2),
-        ("TabViewItemHeaderSelectedCloseButtonBackground", 1),
+        // The Selected/PointerOverSelected/PressedSelected states set the close button
+        // to this key while the header KEEPS TabViewItemHeaderBackground (the selected
+        // look comes from the SelectedBackgroundPath pill, not the header fill). It
+        // must therefore match the header (Surface) — mapping it to the hover color
+        // painted a permanent hover-colored box on the selected tab's "x".
+        ("TabViewItemHeaderSelectedCloseButtonBackground", 0),
         ("TabViewItemHeaderSelectedCloseButtonForeground", 2),
         ("TabViewItemIconForeground", 2),
         ("TabViewItemIconForegroundDisabled", 2),
