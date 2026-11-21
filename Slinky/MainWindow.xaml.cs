@@ -23,7 +23,6 @@ namespace Slinky
     public sealed partial class MainWindow : Window
     {
         public ThemeService Theme => ThemeService.Instance;
-        private readonly ThemeTabStateHub tabThemeStates = new(ThemeService.Instance.Current);
 
         // ----- Printing state -----------------------------------------------------------
         private PrintDocument? printDocument;
@@ -57,8 +56,16 @@ namespace Slinky
             NotesTabView.SelectionChanged += (s, e) => UpdateWindowTitle();
             Closed += MainWindow_Closed;
             // Another instance of the app may have changed the shared theme while this
-            // window was in the background; re-read it the moment the user switches here.
-            Activated += (s, e) => ThemeService.Instance.RefreshFromStorage();
+            // window was in the background; re-read it when the window is activated —
+            // the moment a stale theme would actually be visible.
+            Activated += (s, e) =>
+            {
+                if (e.WindowActivationState != WindowActivationState.Deactivated)
+                {
+                    ThemeService.Instance.RefreshFromStorage();
+                }
+            };
+            InstallTabBrushesOnce();
             ApplyElementTheme();
 
             try
@@ -126,8 +133,6 @@ namespace Slinky
                 AppWindow.TitleBar.ButtonHoverBackgroundColor = hoverTint;
                 AppWindow.TitleBar.ButtonPressedBackgroundColor = pressedTint;
             }
-
-            UpdateTabViewThemeResources();
         }
 
         private void ThemeService_ThemeChanged(object? sender, EventArgs e) => ApplyElementTheme();
@@ -138,36 +143,37 @@ namespace Slinky
             Closed -= MainWindow_Closed;
         }
 
-        private void UpdateTabViewThemeResources()
+        /// <summary>
+        /// Writes every color resource the TabView/TabViewItem templates consume (see
+        /// RecursosDeCorAba) ONCE, all pointing at ThemeService's stable brush instances.
+        /// The "+" button lives in the TabView template OUTSIDE every tab item, so the
+        /// override must sit at TabView scope. Because the brushes themselves are never
+        /// replaced — ThemeService mutates their Color — this single install covers
+        /// every theme change and every tab materialized before or after it, in any
+        /// swap order; no per-tab re-application or RequestedTheme nudge is needed.
+        /// </summary>
+        private void InstallTabBrushesOnce()
         {
             var theme = ThemeService.Instance;
-
-            // Keep defaults for containers created by TabView and also write the same
-            // resources into every existing item. TabView caches the visual tree of an
-            // existing TabViewItem, so changing only TabView.Resources leaves old tabs
-            // stale when both themes share the same Light/Dark ElementTheme.
-            AplicarRecursosAba(NotesTabView.Resources);
-
-            // CRITICAL: the "+" button lives in the TabView TEMPLATE, OUTSIDE every
-            // tab item — the RequestedTheme nudge applied to each tabItem never
-            // reaches it, so its {ThemeResource} values stay frozen at whatever
-            // palette was active when the TabView first materialized (reported: white
-            // "+" in dark mode with a black hover). Forcing Default -> ElementTheme on
-            // the TabView re-evaluates the whole template subtree, including the "+".
-            NotesTabView.RequestedTheme = ElementTheme.Default;
-            NotesTabView.RequestedTheme = theme.ElementTheme;
-
-            tabThemeStates.Apply(theme.Current);
+            foreach (var (key, role) in RecursosDeCorAba)
+            {
+                NotesTabView.Resources[key] = role switch
+                {
+                    1 => theme.Background,
+                    2 => theme.Foreground,
+                    3 => theme.Accent,
+                    _ => theme.Surface
+                };
+            }
         }
 
         /// <summary>
         /// Every color resource the TabView/TabViewItem templates consume (WinUI 1.8
-        /// generic.xaml), mapped to the active palette: 0 = Surface, 1 = Background,
-        /// 2 = Foreground, 3 = Accent (the selection indicator). Covering ALL of them
-        /// is required: the WinUI defaults for states we do not override resolve to
-        /// system accent colors (the blue hover/selection flashes reported in dark
-        /// mode), and the "+" button sits in the TabView template OUTSIDE every tab
-        /// item, so it also needs the TabView-scope override.
+        /// generic.xaml), mapped to the palette role it consumes: 0 = Surface,
+        /// 1 = Background, 2 = Foreground, 3 = Accent (the selection indicator).
+        /// Covering ALL of them is required: the WinUI defaults for states we do not
+        /// override resolve to system accent colors (the blue hover/selection flashes
+        /// reported in dark mode).
         /// </summary>
         private static readonly (string Key, byte Role)[] RecursosDeCorAba = new (string Key, byte Role)[]
         {
@@ -290,20 +296,6 @@ namespace Slinky
         ("TabViewScrollButtonForegroundPressed", 2),
         };
 
-        private void AplicarRecursosAba(Microsoft.UI.Xaml.ResourceDictionary resources)
-        {
-            var theme = ThemeService.Instance;
-            foreach (var (key, role) in RecursosDeCorAba)
-            {
-                resources[key] = role switch
-                {
-                    1 => theme.Background,
-                    2 => theme.Foreground,
-                    3 => theme.Accent,
-                    _ => theme.Surface
-                };
-            }
-        }
         // ----- Startup: crash recovery, session restore, recent files ----------------
 
         private async void RootGrid_Loaded(object sender, RoutedEventArgs e)
@@ -541,7 +533,11 @@ namespace Slinky
                 Content = page,
                 Tag = note,
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
-                VerticalContentAlignment = VerticalAlignment.Stretch
+                VerticalContentAlignment = VerticalAlignment.Stretch,
+                // Stable palette brushes (ThemeService mutates their Color on theme
+                // change), so this one-time assignment covers every later swap.
+                Background = ThemeService.Instance.Surface,
+                Foreground = ThemeService.Instance.Foreground
             };
 
             note.PropertyChanged += (s, e) =>
@@ -569,25 +565,11 @@ namespace Slinky
                 NotesTabView.TabItems.Add(tabItem);
             }
 
-            tabThemeStates.Register(tabItem, _ => ApplyTabItemTheme(tabItem));
             NotesTabView.SelectedItem = tabItem;
             if (!startupRestorationInProgress)
             {
                 _ = RefreshSessionAsync();
             }
-        }
-
-        private void ApplyTabItemTheme(TabViewItem tabItem)
-        {
-            AplicarRecursosAba(tabItem.Resources);
-            var theme = ThemeService.Instance;
-            tabItem.Background = theme.Surface;
-            tabItem.Foreground = theme.Foreground;
-            (tabItem.Content as NotePage)?.ApplyTheme();
-            // Force the existing template's visual states to reevaluate even when both
-            // palettes are Dark (or both are Light), where RequestedTheme alone is unchanged.
-            tabItem.RequestedTheme = ElementTheme.Default;
-            tabItem.RequestedTheme = theme.ElementTheme;
         }
 
         /// <summary>Removes a note's tab (if it has one) and clears its recovery snapshot — the one place all tab-closing paths should go through.</summary>
@@ -599,7 +581,6 @@ namespace Slinky
 
             if (tabItem is not null)
             {
-                tabThemeStates.Unregister(tabItem);
                 NotesTabView.TabItems.Remove(tabItem);
             }
 

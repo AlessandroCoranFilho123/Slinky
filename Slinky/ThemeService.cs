@@ -11,12 +11,15 @@ namespace Slinky.Services
 {
     /// <summary>
     /// A single, app-wide theme source. Every open window/page binds its colors to
-    /// this singleton's brush properties via x:Bind (Mode=OneWay). Because ThemeService
-    /// implements INotifyPropertyChanged, changing the active theme here updates
-    /// every bound control immediately, without reloading any page or window.
+    /// this singleton's brush properties.
     ///
-    /// The actual RGB values live in ThemePalette.cs (a plain, WinRT-free file), while
-    /// ThemeTabState keeps the complete palette transition testable without WinRT.
+    /// The brushes are STABLE instances: Apply never replaces them, it only mutates
+    /// their Color. That is what makes theme switching work everywhere — {ThemeResource}
+    /// lookups inside control templates resolve a brush reference once (re-evaluation
+    /// requires an ActualTheme change, which never happens between themes of the same
+    /// Light/Dark group), and a Color mutation repaints every element holding that
+    /// brush regardless of theme group or swap order. The actual RGB values live in
+    /// ThemePalette.cs (a plain, WinRT-free file).
     /// </summary>
     public class ThemeService : INotifyPropertyChanged
     {
@@ -33,35 +36,19 @@ namespace Slinky.Services
             private set { current = value; OnPropertyChanged(); }
         }
 
-        private SolidColorBrush background = new(Colors.White);
-        public SolidColorBrush Background
-        {
-            get => background;
-            private set { background = value; OnPropertyChanged(); }
-        }
+        private readonly SolidColorBrush background = new(Colors.White);
+        public SolidColorBrush Background => background;
 
-        private SolidColorBrush foreground = new(Colors.Black);
-        public SolidColorBrush Foreground
-        {
-            get => foreground;
-            private set { foreground = value; OnPropertyChanged(); }
-        }
+        private readonly SolidColorBrush foreground = new(Colors.Black);
+        public SolidColorBrush Foreground => foreground;
 
         /// <summary>A slightly different tone used for chrome (menu bar, toolbars) vs. the writing surface.</summary>
-        private SolidColorBrush surface = new(Color.FromArgb(255, 0xF3, 0xF3, 0xF3));
-        public SolidColorBrush Surface
-        {
-            get => surface;
-            private set { surface = value; OnPropertyChanged(); }
-        }
+        private readonly SolidColorBrush surface = new(Color.FromArgb(255, 0xF3, 0xF3, 0xF3));
+        public SolidColorBrush Surface => surface;
 
         /// <summary>Used for selected controls and tab chrome.</summary>
-        private SolidColorBrush accent = new(Color.FromArgb(255, 0x00, 0x67, 0xC0));
-        public SolidColorBrush Accent
-        {
-            get => accent;
-            private set { accent = value; OnPropertyChanged(); }
-        }
+        private readonly SolidColorBrush accent = new(Color.FromArgb(255, 0x00, 0x67, 0xC0));
+        public SolidColorBrush Accent => accent;
 
         /// <summary>Whether the *system* chrome (native checkmarks, dialogs, etc.) should run Light or Dark.</summary>
         public ElementTheme ElementTheme => ThemePalette.IsDark(Current) ? ElementTheme.Dark : ElementTheme.Light;
@@ -103,16 +90,15 @@ namespace Slinky.Services
                 return;
             }
 
-            var palette = ThemeTabState.For(theme);
+            // Recolor the stable brushes IN PLACE instead of replacing them. Replacing
+            // them would orphan every {ThemeResource} reference templates already resolved.
+            background.Color = ToColor(ThemePalette.Background(theme));
+            foreground.Color = ToColor(ThemePalette.Foreground(theme));
+            surface.Color = ToColor(ThemePalette.Surface(theme));
+            accent.Color = ToColor(ThemePalette.Accent(theme));
 
-            Background = new SolidColorBrush(ToColor(palette.Background));
-            Foreground = new SolidColorBrush(ToColor(palette.Foreground));
-            Surface = new SolidColorBrush(ToColor(palette.Surface));
-            Accent = new SolidColorBrush(ToColor(palette.Accent));
-
-            // Publish the enum only after all dependent brushes have their new values,
-            // so one-way bindings never observe a mixed old/new palette.
-            Current = palette.Theme;
+            // Publish the enum only after the brushes carry the new palette.
+            Current = theme;
             initialized = true;
 
             OnPropertyChanged(nameof(ElementTheme));

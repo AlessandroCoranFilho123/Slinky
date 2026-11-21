@@ -33,7 +33,6 @@
     <Compile Include="..\Slinky\ThemePalette.cs" Link="Linked\ThemePalette.cs" />
     <Compile Include="..\Slinky\ThemeSync.cs" Link="Linked\ThemeSync.cs" />
     <Compile Include="..\Slinky\ContrastCalculator.cs" Link="Linked\ContrastCalculator.cs" />
-    <Compile Include="..\Slinky\ThemeTabState.cs" Link="Linked\ThemeTabState.cs" />
     <Compile Include="..\Slinky\TextSearch.cs" Link="Linked\TextSearch.cs" />
     <Compile Include="..\Slinky\EditorTapRouting.cs" Link="Linked\EditorTapRouting.cs" />
     <Compile Include="..\Slinky\TextFileCodec.cs" Link="Linked\TextFileCodec.cs" />

@@ -46,7 +46,7 @@ namespace Slinky.Views
             suppressEditorChange = true;
             NoteEditor.Text = noteModel.Text;
             suppressEditorChange = false;
-            ApplyTheme();
+            InstallEditorBrushes();
             EditorDiag.Attach(this, NoteEditor);
 
         }
@@ -182,23 +182,20 @@ namespace Slinky.Views
         }
 
         /// <summary>
-        /// Applies the complete palette to the editor and its native TextBox template.
-        /// The template has separate PointerOver/Focused brushes, so setting only
-        /// TextBox.Background would still allow a system-colored hover surface.
+        /// Installs, once, the TextBox template's own brushes pointing at ThemeService's
+        /// stable instances (the direct colors are already covered by the x:Bind
+        /// OneWay bindings in the XAML). The template has separate PointerOver/Focused
+        /// brushes, so setting only TextBox.Background would still leave a
+        /// system-colored hover surface; because the brushes are never replaced, this
+        /// one install covers every later theme change.
         /// </summary>
-        public void ApplyTheme()
+        private void InstallEditorBrushes()
         {
-            var background = Theme.Background;
-            var foreground = Theme.Foreground;
-
-            EditorSurface.Background = background;
-            NoteEditor.Background = background;
-            NoteEditor.Foreground = foreground;
-            NoteEditor.Resources["TextControlBackground"] = background;
-            NoteEditor.Resources["TextControlBackgroundPointerOver"] = background;
-            NoteEditor.Resources["TextControlBackgroundFocused"] = background;
-            NoteEditor.Resources["TextControlBackgroundDisabled"] = background;
-            NoteEditor.Resources["TextControlForegroundPointerOver"] = foreground;
+            NoteEditor.Resources["TextControlBackground"] = Theme.Background;
+            NoteEditor.Resources["TextControlBackgroundPointerOver"] = Theme.Background;
+            NoteEditor.Resources["TextControlBackgroundFocused"] = Theme.Background;
+            NoteEditor.Resources["TextControlBackgroundDisabled"] = Theme.Background;
+            NoteEditor.Resources["TextControlForegroundPointerOver"] = Theme.Foreground;
         }
 
         private static bool IsDescendantOf(DependencyObject element, DependencyObject ancestor)
