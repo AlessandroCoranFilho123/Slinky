@@ -5,6 +5,16 @@ como `body_path` (com `generate_release_notes: false` — a action v2 substituí
 corpo curado pelo changelog automático). **Atualize a seção da nova release aqui
 antes de criar a tag.**
 
+## v1.0.13
+
+**Correção**
+
+- **Abrir um arquivo pelo Explorer não cria mais a aba vazia "Sem título"**: o
+  app inicia direto com a aba do documento quando um arquivo é passado na
+  ativação (duplo clique/"Abrir com", incluindo seleção múltipla). A aba vazia
+  só existe quando nada é passado na ativação — e ela ainda cobre o caso de um
+  arquivo pendente que não conseguiu abrir, para a janela nunca ficar sem abas.
+
 ## v1.0.12
 
 **Correção de tema — redesign dos pincéis (causa raiz)**

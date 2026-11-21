@@ -78,10 +78,10 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
   defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
-- Versão atual: **1.0.12.0** (release `v1.0.8` no GitHub; v1.0.9 a v1.0.12 ainda
-  não taggadas — RELEASE-NOTES prontos). A tag `v1.0.6` ficou fixada no commit
-  `6207625`, anterior às melhorias de 10/11; mover tag publicada não é opção,
-  por isso as versões avançam sem mover tags.
+- Versão atual: **1.0.13.0** (release `v1.0.12` publicada no GitHub 21/11 — tag
+  `v1.0.12` no `f0059bd`; v1.0.13 não taggada — RELEASE-NOTES pronto). A tag
+  `v1.0.6` ficou fixada no commit `6207625`, anterior às melhorias de 10/11; mover
+  tag publicada não é opção, por isso as versões avançam sem mover tags.
 - **Tema: pincéis estáveis (20/11, `docs/TEMA-PINCEIS-ESTAVEIS-2026-11-20.md`)**:
   causa raiz dos bugs de cor (hover do "X" preso, "+" com paleta velha, transições
   no mesmo grupo claro/escuro) era `ThemeService.Apply` criar pincéis novos a cada
@@ -149,7 +149,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
   partida aquecida ~0,4 s até janela / ~0,65 s até editor; 204 MB instalados
   (self-contained).
 - Pacote instalado nesta máquina:
-  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.12.0_x64__1xsa4dc8b90qj`
+  `46cebc95-b2f1-4e6a-819f-0227204d1c62_1.0.13.0_x64__1xsa4dc8b90qj`
   (publisher `CN=Alessandro`, assinatura Developer). O AUMID da seção anterior
   corresponde a essa família.
 - Histórico e causas raiz dos erros de instalação: `docs/INSTALACAO-MSIX.md`.
