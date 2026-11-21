@@ -77,7 +77,8 @@ namespace Slinky
                 // Printing just won't be available in this environment; the rest of the app still works.
             }
 
-            // The initial blank note is created after session/recovery restoration.
+            // The initial blank note is created after session/recovery restoration,
+            // and only when no file came in on the launch (see RootGrid_Loaded).
             // Creating it here would leave an extra empty tab on every restored session.
         }
 
@@ -316,16 +317,12 @@ namespace Slinky
             }
             finally
             {
-                if (NotesTabView.TabItems.Count == 0)
-                {
-                    AddNoteTab(new Note());
-                }
-
                 startupRestorationInProgress = false;
                 await RefreshSessionAsync();
 
-                // Documento recebido na ativação (associação de arquivos / "Abrir com"),
-                // aberto por último para não disputar com o restore de sessão.
+                // Documento(s) recebido(s) na ativação (associação de arquivos /
+                // "Abrir com"), abertos antes da decisão sobre a aba em branco:
+                // abrir um arquivo específico não deve vir com uma aba vazia junto.
                 if (PendingLaunchPath is not null)
                 {
                     var caminho = PendingLaunchPath;
@@ -337,6 +334,15 @@ namespace Slinky
                     await OpenPathAsync(caminho);
                 }
                 pendingExternalOpens.Clear();
+
+                // The blank note only exists when nothing else opened: no session
+                // restore, no recovery, no launch file. It also covers a launch
+                // file that failed to open, so the window is never empty.
+                if (NotesTabView.TabItems.Count == 0)
+                {
+                    AddNoteTab(new Note());
+                }
+
                 UpdateWindowTitle();
             }
         }
