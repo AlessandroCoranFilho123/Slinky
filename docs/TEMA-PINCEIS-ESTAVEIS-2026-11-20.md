@@ -93,7 +93,48 @@ Resultado: o diff **diminui** — saíram ~290 linhas, entraram ~90.
   `PostMessage` não existia no Add-Type e a janela de tema nunca fechava (janelas
   órfãs empilhadas).
 
-## 5. Limitações conhecidas / follow-ups
+## 5. Follow-up do mesmo dia: o "x" da aba selecionada sempre "ativo"
+
+Residual do relato original, confirmado pela matriz com hovers reais. Leitura do
+`generic.xaml` do WinUI 1.8 (`Microsoft.WinUI/Themes/generic.xaml`, template do
+TabViewItem):
+
+- Os estados **Selected/PointerOverSelected/PressedSelected** aplicam
+  `<Setter Target="CloseButton.Background" Value="{ThemeResource
+  TabViewItemHeaderSelectedCloseButtonBackground}"/>`, mas **não** mudam
+  `TabContainer.Background` — o header selecionado mantém
+  `TabViewItemHeaderBackground` (Surface); o visual de "selecionada" vem do "pill"
+  (`SelectedBackgroundPath.Fill = TabViewItemHeaderBackgroundSelected`) + borda +
+  negrito.
+- A tabela de 117 recursos mapeava essa chave para o papel 1 (cor de hover) por
+  associação de nome — resultado: a caixa de hover **permanente** no "x" da aba
+  selecionada, em todos os temas (o sintoma "x fica sempre ativo").
+- **Fix**: `TabViewItemHeaderSelectedCloseButtonBackground` → papel 0 (Surface). O
+  "x" mistura com o header nos três estados; o hover do próprio "x"
+  (`TabViewItemHeaderCloseButtonBackgroundPointerOver`, papel 1) dá o feedback
+  visível e o `PointerExited` reverte ao fundo da aba.
+
+Armadilhas de automação descobertas nesta rodada (explicam por que as matrizes
+antigas passavam sem medir nada real):
+
+1. **`SetCursorPos` não dispara hover no WinUI 3**: o framework consome a pilha de
+   entrada **WM_POINTER**; `SetCursorPos` move o cursor sem gerar evento de entrada.
+   Movimento sintético válido = `mouse_event`/`SendInput` com `MOUSEEVENTF_ABSOLUTE`
+   em passos (~40 ms). Com `SetCursorPos`, TODAS as verificações de hover mediam a
+   cor de repouso e passavam vacuamente.
+2. **Estados de hover com janela inativa pintam cores erradas** (medido: 22/43 em
+   vez de 30/40 no Escuro Padrão) — garantir ativação (clique real como fallback do
+   foreground lock) antes de medir.
+3. **A janela se move entre rodadas**: nunca fixar origem de captura — usar
+   `GetWindowRect` do handle real a cada execução; posições de abas/"x"/"+" vem de
+   `BoundingRectangle` (UIA), não de coordenadas fixas (a matriz anterior chegou a
+   rodar com 1 aba e os hovers em abas 2/3 e "+" caíam na strip vazia).
+4. **`$failures +=` dentro de função do PowerShell 5.1 cria cópia local** — os
+   failures dentro de `MedirEstados` eram engolidos; usar `$script:failures`.
+5. A garantia de 3 abas é verificada por UIA (contagem de `ControlType.TabItem`)
+   com retry de `Ctrl+T` antes de medir qualquer coisa.
+
+## 6. Limitações conhecidas / follow-ups
 
 - **MenuBar, flyouts e ContentDialog** continuam com cores de sistema (Light/Dark
   correto via `RequestedTheme`, mas não a paleta exata em Dracula/Azulado). Não

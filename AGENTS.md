@@ -88,10 +88,17 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
   troca — os `{ThemeResource}` dos templates ficam órfãos sem mudança de
   `ActualTheme`. Agora 4 pincéis estáveis apenas mutam `Color`. Removidos:
   re-aplicação dos 117 recursos por troca, truque `RequestedTheme` (TabView/tabItems),
-  `ThemeTabStateHub`/`ThemeTabState`. Validação = **matriz 5×5 de transições** em
-  `Tests/automation/tab-hover.ps1` (25/25 PASS, incl. pós-leave do "X", resíduo do
-  tema anterior e azul-sistema) — os testes headless de paleta/contraste NÃO cobrem
-  este risco; rodar a matriz após qualquer bump do WindowsAppSDK.
+  `ThemeTabStateHub`/`ThemeTabState`. **O "x" da aba selecionada** usa
+  `TabViewItemHeaderSelectedCloseButtonBackground` → papel Surface (o estado Selected
+  NÃO muda o fundo do header; mapear para hover pintava caixa permanente no "x").
+  Validação = **matriz 5×5 de transições** em `Tests/automation/tab-hover.ps1`
+  (25/25 PASS com hovers reais, pós-leave do "X", resíduo do tema anterior e
+  azul-sistema) — os testes headless de paleta/contraste NÃO cobrem este risco;
+  rodar a matriz após qualquer bump do WindowsAppSDK. **Armadilha de automação**:
+  WinUI 3 consome WM_POINTER — `SetCursorPos` NÃO dispara hover (usar
+  `mouse_event`/SendInput ABSOLUTE em passos); estados de hover com janela inativa
+  pintam cores erradas; geometria sempre via UIA `BoundingRectangle` (a janela se
+  move entre rodadas e coordenadas fixas medem lugar errado).
 - **Auditoria da single-instancing (17/11, `docs/QA-2026-11-17.md`)**: 7 achados
   corrigidos (redirect com timeout+fallback, fila drenada no startup, GUID na
   chave, seleção múltipla, token exato, mutex na fila, **arquivo de 0 bytes

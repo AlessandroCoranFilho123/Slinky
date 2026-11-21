@@ -20,6 +20,13 @@ antes de criar a tag.**
   recursos e o truque `RequestedTheme` por aba desincronizavam os visual states
   dos templates. A matriz de automação agora valida as 25 transições (5×5) e o
   estado do botão fechar depois de o mouse sair.
+- **O "x" da aba selecionada não fica mais com a caixa de hover permanente**: os
+  estados Selected/PointerOverSelected/PressedSelected do template pintam o close
+  button com `TabViewItemHeaderSelectedCloseButtonBackground`, enquanto o header
+  mantém a cor normal (o visual de selecionada vem do "pill", não do fundo) —
+  mapear essa chave para a cor de hover deixava o "x" sempre "ativo". Agora ela
+  acompanha o fundo do header; a cor de hover só aparece com o mouse sobre o "x"
+  e some quando o mouse sai.
 - **Remoções**: re-aplicação dos 117 recursos de cor a cada troca, truque
   `RequestedTheme Default→tema` (no TabView e por aba), ThemeTabStateHub e o
   texto "Todas as abas e janelas abertas atualizam na hora" da janela de tema.
