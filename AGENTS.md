@@ -73,15 +73,25 @@ Start-Process 'shell:AppsFolder\46cebc95-b2f1-4e6a-819f-0227204d1c62_1xsa4dc8b90
 Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 `PRI249 DESKTOP-EVENTLOG-INSTRUMENTATION`.
 
-## Estado atual (19/11/2026)
+## Estado atual (20/11/2026)
 
 - Plano de correções (`docs/PLANO-CORRECOES-E-CHECKLIST.md`): **100% concluído**,
   incluindo o smoke UI completo (automação UIA/SendInput) e a correção de dois
   defeitos encontrados por ele (diálogo duplo `Ctrl+W`, indicador de foco).
-- Versão atual: **1.0.11.0** (release `v1.0.8` no GitHub; v1.0.9 a v1.0.11 ainda
+- Versão atual: **1.0.12.0** (release `v1.0.8` no GitHub; v1.0.9 a v1.0.12 ainda
   não taggadas — RELEASE-NOTES prontos). A tag `v1.0.6` ficou fixada no commit
   `6207625`, anterior às melhorias de 10/11; mover tag publicada não é opção,
   por isso as versões avançam sem mover tags.
+- **Tema: pincéis estáveis (20/11, `docs/TEMA-PINCEIS-ESTAVEIS-2026-11-20.md`)**:
+  causa raiz dos bugs de cor (hover do "X" preso, "+" com paleta velha, transições
+  no mesmo grupo claro/escuro) era `ThemeService.Apply` criar pincéis novos a cada
+  troca — os `{ThemeResource}` dos templates ficam órfãos sem mudança de
+  `ActualTheme`. Agora 4 pincéis estáveis apenas mutam `Color`. Removidos:
+  re-aplicação dos 117 recursos por troca, truque `RequestedTheme` (TabView/tabItems),
+  `ThemeTabStateHub`/`ThemeTabState`. Validação = **matriz 5×5 de transições** em
+  `Tests/automation/tab-hover.ps1` (25/25 PASS, incl. pós-leave do "X", resíduo do
+  tema anterior e azul-sistema) — os testes headless de paleta/contraste NÃO cobrem
+  este risco; rodar a matriz após qualquer bump do WindowsAppSDK.
 - **Auditoria da single-instancing (17/11, `docs/QA-2026-11-17.md`)**: 7 achados
   corrigidos (redirect com timeout+fallback, fila drenada no startup, GUID na
   chave, seleção múltipla, token exato, mutex na fila, **arquivo de 0 bytes
@@ -163,6 +173,7 @@ Avisos de build benignos: `mspdbcmf.exe` não encontrado (pacote de símbolos) e
 | [`docs/QA-2026-10-30.md`](docs/QA-2026-10-30.md) | QA profundo: codificações, arquivos grandes (limites), stress, integridade de dados, segurança |
 | [`docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md`](docs/ASSOCIACAO-ARQUIVOS-2026-11-10.md) | Associação `.txt`: causa raiz do C00CE014, rota de ativação por arquivo e evidência E2E |
 | [`docs/JANELA-UNICA-ABAS-2026-11-17.md`](docs/JANELA-UNICA-ABAS-2026-11-17.md) | Single-instancing com abas: design, armadilhas (argv vazio, chave órfã) e evidência E2E |
+| [`docs/TEMA-PINCEIS-ESTAVEIS-2026-11-20.md`](docs/TEMA-PINCEIS-ESTAVEIS-2026-11-20.md) | Tema: causa raiz (pincéis trocados vs `{ThemeResource}`), pincéis estáveis, matriz 5×5 de transições e limitações |
 | [`docs/QA-2026-11-17.md`](docs/QA-2026-11-17.md) | Auditoria da single-instancing: 7 achados corrigidos + bateria completa (byte a byte) |
 | [`docs/RACE-AUDIT-2026-10-30.md`](docs/RACE-AUDIT-2026-10-30.md) | Auditoria de corridas: R1/R2 (snapshot ressuscitado), R5 (tmp órfão) |
 | [`docs/REVISAO-AUDITORIA-CLAUDE-2026-10-30.md`](docs/REVISAO-AUDITORIA-CLAUDE-2026-10-30.md) | Revisão cruzada de auditoria externa: achados M/H corrigidos |
